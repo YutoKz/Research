@@ -29,8 +29,6 @@ torch.manual_seed(0)
 # データセットの分割
 train, val, test = torch.utils.data.random_split(dataset, [n_train, n_val, n_test])
 
-#-------------------------------------------------------------------------------------------
-
 # バッチサイズ
 batch_size = 10
       
@@ -79,6 +77,7 @@ criterion = F.cross_entropy
 # 最適化手法の選択
 optimizer = torch.optim.SGD(net.parameters(), lr=0.1)
 
+#-------------------------------------------------------------------------------------------
 
 # 学習ループ
 for epoch in range(max_epoch):
@@ -119,6 +118,7 @@ for epoch in range(max_epoch):
         # 勾配の情報を用いたパラメータの更新
         optimizer.step()
 
+#-------------------------------------------------------------------------------------------
 
 # 正解率の計算
 def calc_acc(data_loader):
@@ -143,8 +143,6 @@ def calc_acc(data_loader):
     
     return avg_acc
 
-
-      
 # 検証データで確認
 calc_acc(val_loader)
 
