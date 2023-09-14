@@ -69,6 +69,12 @@ criterion = F.cross_entropy
 # 最適化手法の選択
 optimizer = torch.optim.SGD(net.parameters(), lr=0.1)
 
+# 演算に使用できる GPU の有無を確認
+print('cuda is available:', torch.cuda.is_available())
+
+# GPU の設定状況に基づいたデバイスの選択
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 # 学習ループ
 for epoch in range(max_epoch):
