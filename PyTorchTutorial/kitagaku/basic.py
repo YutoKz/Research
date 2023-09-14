@@ -1,3 +1,7 @@
+"""
+おそらく問題なく実行できた
+"""
+
 from sklearn.datasets import load_iris
 import torch 
 import torch.nn as nn
@@ -54,6 +58,12 @@ class Net(nn.Module):
 
 #-------------------------------------------------------------------------------------------
 
+# 演算に使用できる GPU の有無を確認
+print('cuda is available:', torch.cuda.is_available())
+
+# GPU の設定状況に基づいたデバイスの選択
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 # エポックの数
 max_epoch = 1
 
@@ -68,12 +78,6 @@ criterion = F.cross_entropy
   
 # 最適化手法の選択
 optimizer = torch.optim.SGD(net.parameters(), lr=0.1)
-
-# 演算に使用できる GPU の有無を確認
-print('cuda is available:', torch.cuda.is_available())
-
-# GPU の設定状況に基づいたデバイスの選択
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 # 学習ループ
@@ -108,7 +112,6 @@ for epoch in range(max_epoch):
         # 正解率
         acc  = torch.sum(y_label == t) * 1.0 / len(t)
         print('accuracy:', acc)
-
 
         # 各パラメータの勾配を算出
         loss.backward()
