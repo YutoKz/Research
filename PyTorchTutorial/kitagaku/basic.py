@@ -35,7 +35,6 @@ batch_size = 10
 # shuffle はデフォルトで False のため、学習データのみ True に指定
 train_loader = torch.utils.data.DataLoader(train, batch_size, shuffle=True)
 val_loader = torch.utils.data.DataLoader(val, batch_size)
-test_loader = torch.utils.data.DataLoader(test, batch_size)
 
 #-------------------------------------------------------------------------------------------
 
