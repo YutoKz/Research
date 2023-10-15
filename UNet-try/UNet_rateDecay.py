@@ -185,14 +185,24 @@ TverskyLoss = smp.losses.TverskyLoss(mode='multilabel', log_loss=False)
 BCELoss     = smp.losses.SoftBCEWithLogitsLoss()
 def criterion(pred,target):
     return 0.5*BCELoss(pred, target) + 0.5*TverskyLoss(pred, target)
-#criterion = nn.CrossEntropyLoss()
+
 
 # Training
 history = {"train_loss": []}
 n = 0
 m = 0
 
-for epoch in range(15):
+for epoch in range(30):
+  # 学習率減衰
+  if epoch > 10 and epoch <= 20:
+    new_learning_rate = 0.0001  
+    for param_group in optimizer.param_groups:
+      param_group['lr'] = new_learning_rate
+  elif epoch > 20:
+    new_learning_rate = 0.00001  
+    for param_group in optimizer.param_groups:
+      param_group['lr'] = new_learning_rate
+  
   train_loss = 0
   val_loss = 0
 
@@ -241,7 +251,7 @@ plt.savefig("/usr/UNet-try/result_png/train_loss.png")
 
 # test
 model = UNet_2D()
-model.load_state_dict(torch.load("./models/train_15.pth"))
+model.load_state_dict(torch.load("./models/train_30.pth"))
 model.eval()
 with torch.no_grad():
   data = next(iter(test_loader))
