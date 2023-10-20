@@ -4,8 +4,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import gaussian_filter  # type: ignore  # noqa: PGH003
 
-
-def add_salt_pepper_noise(image, salt_prob, pepper_prob):
+def add_noise(image, salt_prob, pepper_prob) -> npt.NDArray[np.float64]:
     noisy_image = np.copy(image)
 
     total_pixels = image.size
@@ -18,7 +17,9 @@ def add_salt_pepper_noise(image, salt_prob, pepper_prob):
 
     # add Pepper noise
     pepper_coordinates = [np.random.randint(0, i - 1, num_pepper) for i in image.shape]
-    noisy_image[pepper_coordinates[0], pepper_coordinates[1]] = 1
+    noisy_image[pepper_coordinates[0], pepper_coordinates[1]] = 0.7
+
+    # add Random noise
 
     return noisy_image
 
@@ -40,6 +41,7 @@ class DoubleQuantumDot:
         c_gate1_0: float,
         c_gate1_1: float,
         e: float,
+        v_s: float = 0.0,    # v_dは0として考えている
     ) -> None:
         self.c_0 = c_0
         self.c_1 = c_1
@@ -49,6 +51,7 @@ class DoubleQuantumDot:
         self.c_gate1_0 = c_gate1_0
         self.c_gate1_1 = c_gate1_1
         self.e = e
+        self.v_s = v_s
 
         c_omega_temp = 1 - c_01**2 / (c_0 * c_1)
         self.__c_omega_0 = c_omega_temp * c_0
@@ -75,10 +78,10 @@ class DoubleQuantumDot:
         self,
         range_v0: npt.NDArray[np.float64],
         range_v1: npt.NDArray[np.float64],
-        thickness=0.1,
-        salt=0.0,
-        pepper=0.0,
-        gaussian=1.0,  # 個人的に追加
+        thickness: float = 0.1,
+        salt: float = 0.0,
+        pepper: float = 0.0,
+        gaussian: float = 0.0,
     ) -> npt.NDArray[np.float64]:
         """CSDをシミュレーションする関数.
 
@@ -101,8 +104,8 @@ class DoubleQuantumDot:
             for j, v0 in enumerate(range_v1):
                 original_csd[i, j] = self._calculate_CSD_heatmap(v0, v1, thickness)
 
-        # salt/pepper ノイズを追加
-        output_csd = add_salt_pepper_noise(original_csd, salt_prob=salt, pepper_prob=pepper)  
+        # ノイズを追加
+        output_csd: npt.NDArray[np.float64] = add_noise(original_csd, salt_prob=salt, pepper_prob=pepper)  
 
         # ガウシアンフィルタ
         output_csd: npt.NDArray[np.float64] = gaussian_filter(output_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
@@ -110,18 +113,18 @@ class DoubleQuantumDot:
         return original_csd, output_csd
 
     def _calculate_CSD_heatmap(self, v_0: float, v_1: float, thickness: float) -> float:
-        for n_1 in range(6):
-            for n_0 in range(6):
+        for n_1 in range(5):    # TODO: 並列化したい
+            for n_0 in range(5):
                 n_0_start, n_0_end = self._range_3_v0(n_0, n_1)
-                if n_0_start <= v_0 <= n_0_end and np.abs(v_1 - self._func_border_3(v_0, n_0, n_1)) <= thickness:
+                if n_0_start <= v_0 <= n_0_end and self.__distance_border_3(v_0, v_1, n_0, n_1) <= thickness:
                     return 1
 
                 n_0_start, n_0_end = self._range_4_v0(n_0, n_1)
-                if n_0_start <= v_0 <= n_0_end and np.abs(v_1 - self._func_border_4(v_0, n_0, n_1)) <= thickness:
+                if n_0_start <= v_0 <= n_0_end and self.__distance_border_4(v_0, v_1, n_0, n_1) <= thickness:
                     return 1
 
                 n_0_start, n_0_end = self._range_5_v0(n_0, n_1)
-                if n_0_start <= v_0 <= n_0_end and np.abs(v_1 - self._func_border_5(v_0, n_0, n_1)) <= thickness:
+                if n_0_start <= v_0 <= n_0_end and self.__distance_border_5(v_0, v_1, n_0, n_1) <= thickness:
                     return 1
 
         return 0
@@ -129,14 +132,41 @@ class DoubleQuantumDot:
     def __func_border_3(self, v_0: float, n_0: int, n_1: int) -> float:
         return (
             -self.__alpha_02 / self.__alpha_03 * v_0
-            + self.e * (1 / self.__c_tilde_01 * n_1 + 1 / self.__c_omega_0 * (n_0 - 1 / 2)) / self.__alpha_03
+            + self.e
+            * (1 / self.__c_tilde_01 * n_1 + 1 / self.__c_omega_0 * (n_0 - 1 / 2) + self.v_s / self.e)
+            / self.__alpha_03
         )
+
+    def __distance_border_3(self, v_0: float, v_1: float, n_0: int, n_1: int) -> float:
+        # TODO: このあたりをキャッシュ化orして高速にしたい
+        a = self.__alpha_02 / self.__alpha_03
+        b = 1
+        c = (
+            -self.e
+            * (1 / self.__c_tilde_01 * n_1 + 1 / self.__c_omega_0 * (n_0 - 1 / 2) + self.v_s / self.e)
+            / self.__alpha_03
+        )
+
+        top = np.abs(a * v_0 + b * v_1 + c)
+        bottom = np.sqrt(a**2 + b**2)
+
+        return top / bottom
 
     def __func_border_4(self, v_0: float, n_0: int, n_1: int) -> float:
         return (
             -self.__alpha_12 / self.__alpha_13 * v_0
             + self.e * (1 / self.__c_tilde_01 * n_0 + 1 / self.__c_omega_1 * (n_1 - 1 / 2)) / self.__alpha_13
         )
+
+    def __distance_border_4(self, v_0: float, v_1: float, n_0: int, n_1: int) -> float:
+        a = self.__alpha_12 / self.__alpha_13
+        b = 1
+        c = -self.e * (1 / self.__c_tilde_01 * n_0 + 1 / self.__c_omega_1 * (n_1 - 1 / 2)) / self.__alpha_13
+
+        top = np.abs(a * v_0 + b * v_1 + c)
+        bottom = np.sqrt(a**2 + b**2)
+
+        return top / bottom
 
     def __func_border_5(self, v_0: float, n_0: int, n_1: int) -> float:
         return (self.__alpha_12 - self.__alpha_02) / (self.__alpha_03 - self.__alpha_13) * v_0 + self.e / (
@@ -147,6 +177,25 @@ class DoubleQuantumDot:
             + (n_0 + 1 / 2) / self.__c_omega_0
             - (n_1 - 1 / 2) / self.__c_omega_1
         )
+
+    def __distance_border_5(self, v_0: float, v_1: float, n_0: int, n_1: int) -> float:
+        a = (self.__alpha_12 - self.__alpha_02) / (self.__alpha_03 - self.__alpha_13)
+        b = -1
+        c = (
+            self.e
+            / (self.__alpha_03 - self.__alpha_13)
+            * (
+                n_1 / self.__c_tilde_01
+                - (n_0 + 1) / self.__c_tilde_01
+                + (n_0 + 1 / 2) / self.__c_omega_0
+                - (n_1 - 1 / 2) / self.__c_omega_1
+            )
+        )
+
+        top = np.abs(a * v_0 + b * v_1 + c)
+        bottom = np.sqrt(a**2 + b**2)
+
+        return top / bottom
 
     def __range_3_v0(self, n_0: int, n_1: int) -> tuple[float, float]:
         """(19.4)式 (教科書参照) のv_0の範囲を計算する関数.
@@ -172,6 +221,7 @@ class DoubleQuantumDot:
                 + 2 * n_0 * self.__alpha_13 * self.__c_omega_1 * self.__c_tilde_01
                 - 2 * n_1 * self.__alpha_03 * self.__c_omega_0 * self.__c_tilde_01
                 + 2.0 * n_1 * self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1
+                + 2.0 * self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1 * self.__c_tilde_01 * self.v_s / self.e
                 + self.__alpha_03 * self.__c_omega_0 * self.__c_tilde_01
                 - self.__alpha_13 * self.__c_omega_1 * self.__c_tilde_01
             )
@@ -184,6 +234,7 @@ class DoubleQuantumDot:
             * (
                 -self.__alpha_03 * self.__c_omega_0 * self.__c_tilde_01
                 + self.__alpha_03 * self.__c_omega_0 * self.__c_omega_1
+                - self.__alpha_03 * self.__c_omega_0 * self.__c_omega_1 * self.__c_tilde_01 * self.v_s / self.e
             )
         ) / intersection_3_bottom
 
@@ -209,15 +260,21 @@ class DoubleQuantumDot:
         )
 
         intersection_4_3_v0 = (
-            intersection_4_top - self.__alpha_13 * self.__c_omega_1 * self.__c_tilde_01
-        ) / intersection_4_bottom
-        intersection_4_5_v0 = (
-            intersection_4_top
-            - 2 * self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1
-            + self.__alpha_13 * self.__c_omega_1 * self.__c_tilde_01
+            intersection_4_top - self.__alpha_13 * self.__c_omega_1 * self.__c_tilde_01 * self.e * 0.5
         ) / intersection_4_bottom
 
-        return intersection_4_3_v0, intersection_4_5_v0
+        intersection_4_1_v0 = (
+            intersection_4_top
+            + self.e
+            * 0.5
+            * (
+                -2 * self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1
+                + self.__alpha_13 * self.__c_omega_1 * self.__c_tilde_01
+            )
+            + self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1 * self.__c_tilde_01 * self.v_s
+        ) / intersection_4_bottom
+
+        return intersection_4_3_v0, intersection_4_1_v0
 
     def __range5_v0(self, n_0: int, n_1: int) -> tuple[float, float]:
         intersection_5_bottom = (
@@ -240,10 +297,13 @@ class DoubleQuantumDot:
         )
 
         intersection_4_5_v0 = (
-            intersection_5_top - 2 * self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1
+            intersection_5_top - 2 * self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1 * self.e * 0.5
         ) / intersection_5_bottom
         intersection_5_1_v0 = (
-            intersection_5_top - 2 * self.__alpha_03 * self.__c_omega_0 * self.__c_omega_1
+            intersection_5_top
+            - self.__alpha_03 * self.__c_omega_0 * self.__c_omega_1 * self.e
+            - self.__alpha_03 * self.__c_omega_0 * self.__c_omega_1 * self.__c_tilde_01 * self.v_s
+            + self.__alpha_13 * self.__c_omega_0 * self.__c_omega_1 * self.__c_tilde_01 * self.v_s
         ) / intersection_5_bottom
 
         return intersection_4_5_v0, intersection_5_1_v0

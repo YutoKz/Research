@@ -31,7 +31,13 @@ def main() -> None:
         e=2,
     )
 
-    original_csd, noisy_csd = dqd.simulation_CSD(range_v0=range_v0, range_v1=range_v1, pepper=0.1)
+    original_csd, noisy_csd = dqd.simulation_CSD(
+        range_v0=range_v0, 
+        range_v1=range_v1, 
+        thickness=0.05, 
+        pepper=0.2,
+        gaussian=1.0, 
+    )
 
     # 描画
     plt.figure(figsize=(8, 8))
