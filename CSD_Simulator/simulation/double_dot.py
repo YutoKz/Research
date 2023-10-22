@@ -19,7 +19,7 @@ def add_noise(image, salt_prob, pepper_prob, random_prob) -> npt.NDArray[np.floa
 
     # add Pepper noise
     pepper_coordinates = [np.random.randint(0, i - 1, num_pepper) for i in image.shape]
-    noisy_image[pepper_coordinates[0], pepper_coordinates[1]] = 0.7
+    noisy_image[pepper_coordinates[0], pepper_coordinates[1]] = 1.0
 
     # add Random noise
     random_coordinates = [np.random.randint(0, i - 1, num_random) for i in image.shape]
@@ -83,8 +83,9 @@ class DoubleQuantumDot:
         range_v0: npt.NDArray[np.float64],
         range_v1: npt.NDArray[np.float64],
         thickness: float = 0.1,
-        salt: float = 0.0,
-        pepper: float = 0.0,
+        salt_prob: float = 0.0,
+        pepper_prob: float = 0.0,
+        random_prob: float = 0.0, 
         gaussian: float = 0.0,
     ) -> npt.NDArray[np.float64]:
         """CSDをシミュレーションする関数.
@@ -109,7 +110,7 @@ class DoubleQuantumDot:
                 original_csd[i, j] = self._calculate_CSD_heatmap(v0, v1, thickness)
 
         # ノイズを追加
-        output_csd: npt.NDArray[np.float64] = add_noise(original_csd, salt_prob=salt, pepper_prob=pepper)  
+        output_csd: npt.NDArray[np.float64] = add_noise(original_csd, salt_prob=salt_prob, pepper_prob=pepper_prob, random_prob=random_prob)  
 
         # ガウシアンフィルタ
         output_csd: npt.NDArray[np.float64] = gaussian_filter(output_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
