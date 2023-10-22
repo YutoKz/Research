@@ -1,3 +1,4 @@
+# type: ignore
 import matplotlib.pyplot as plt
 import numpy as np
 from simulation.double_dot import DoubleQuantumDot
@@ -28,7 +29,8 @@ def main() -> None:
         c_gate0_1=c_gate0_1,
         c_gate1_0=c_gate1_0,
         c_gate1_1=c_gate1_1,
-        e=2,
+        e=7,
+        v_s=0.0,
     )
 
     original_csd, noisy_csd = dqd.simulation_CSD(
