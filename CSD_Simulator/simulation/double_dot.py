@@ -3,13 +3,15 @@ from functools import lru_cache
 import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import gaussian_filter  # type: ignore  # noqa: PGH003
+import random
 
-def add_noise(image, salt_prob, pepper_prob) -> npt.NDArray[np.float64]:
+def add_noise(image, salt_prob, pepper_prob, random_prob) -> npt.NDArray[np.float64]:
     noisy_image = np.copy(image)
 
     total_pixels = image.size
     num_salt = int(total_pixels * salt_prob)
     num_pepper = int(total_pixels * pepper_prob)
+    num_random = int(total_pixels * random_prob)
 
     # add Salt noise 
     salt_coordinates = [np.random.randint(0, i - 1, num_salt) for i in image.shape]
@@ -20,6 +22,8 @@ def add_noise(image, salt_prob, pepper_prob) -> npt.NDArray[np.float64]:
     noisy_image[pepper_coordinates[0], pepper_coordinates[1]] = 0.7
 
     # add Random noise
+    random_coordinates = [np.random.randint(0, i - 1, num_random) for i in image.shape]
+    noisy_image[random_coordinates[0], random_coordinates[1]] = [random.random() for i in range(num_random)]
 
     return noisy_image
 
