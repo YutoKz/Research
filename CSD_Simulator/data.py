@@ -28,7 +28,7 @@ def create_dataset() -> None:
     range_v1 = np.arange(0, 10, 0.1)
 
     # number of training data
-    num_pattern = 1
+    num_pattern = 1000
 
     random.seed(0)
 
