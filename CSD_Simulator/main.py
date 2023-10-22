@@ -8,10 +8,10 @@ def main() -> None:
 
     # DQD parameter
     c_01 = -0.1                             # 構造              ~ -3.0 ~ -0.05 ~ -0.00001 
-    c_gate0_0 = -0.8                        # 拡大縮小          -0.8 ~
-    c_gate0_1 = -0.1                        # 傾き              -0.2 ~ -0.001
-    c_gate1_0 = -0.1                        # 傾き              -0.2 ~ -0.001
-    c_gate1_1 = -0.8                        # 拡大縮小          -0.8 ~
+    c_gate0_0 = -0.3                        # 拡大縮小          -0.8 ~ -0.3
+    c_gate0_1 = -0.01                        # 傾き              -0.2 ~ -0.001
+    c_gate1_0 = -0.01                        # 傾き              -0.2 ~ -0.001
+    c_gate1_1 = -0.3                        # 拡大縮小          -0.8 ~  -0.3
     c_0 = -(c_01 + c_gate0_0 + c_gate1_0)
     c_1 = -(c_01 + c_gate0_1 + c_gate1_1)
     e = 2.0                                 # 拡大縮小          2.0~
@@ -20,9 +20,9 @@ def main() -> None:
     # CSD parameter 
     thickness = 0.05
     salt_prob = 0.0
-    pepper_prob = 0.2
-    random_prob = 0.45
-    gaussian = 1.2
+    pepper_prob = 0.0
+    random_prob = 0.0
+    gaussian = 1.0
 
     # range of v0 / v1
     range_v0 = np.arange(0, 10, 0.1) #元0, 10, 0.05
