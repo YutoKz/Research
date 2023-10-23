@@ -264,7 +264,7 @@ for epoch in range(15):
         val_loss = 0
         val_acc = 0
 
-  torch.save(unet.state_dict(), f"./models/train_{epoch+1}.pth")
+  torch.save(unet.state_dict(), f"./output/models/train_{epoch+1}.pth")
 print("finish training")
 
 
@@ -272,9 +272,38 @@ print("finish training")
 plt.plot(history["train_loss"])
 plt.xlabel('batch')
 plt.ylabel('loss')
-plt.savefig("./result/train_loss.png")
+plt.savefig("./output/train_loss.png")
 
 
+# test
+model = UNet_2D()
+model.load_state_dict(torch.load("./output/models/train_15.pth"))
+model.eval()
+sigmoid = nn.Sigmoid()
+
+with torch.no_grad():
+  for i, data in enumerate(test_loader):
+    inputs, labels = data["img"], data["label"]
+    outputs = model(inputs)
+    loss = criterion(outputs, labels)
+    #print("loss: ",loss.item())
+
+    outputs = sigmoid(outputs)
+    pred = torch.argmax(outputs, axis=1)
+    pred = torch.nn.functional.one_hot(pred.long(), num_classes=2).to(torch.float32)
+
+    orig = inputs[0,0,:,:].cpu().numpy()
+    cv2.imwrite(f"./output/result/{i}_original.png", orig*255)
+
+    lab = labels[0,1,:,:].cpu().numpy()
+    cv2.imwrite(f"./output/result/{i}_label.png", lab*255)
+    
+    pred_np = pred[0,:,:,1].cpu().numpy()
+    cv2.imwrite(f"./output/result/{i}_pred.png", pred_np*255)
+
+
+
+""" 1枚のみの画像に対してテスト
 # test
 model = UNet_2D()
 model.load_state_dict(torch.load("./models/train_15.pth"))
@@ -314,9 +343,12 @@ pred_np = pred[0,:,:,1].cpu().numpy()
 #print(pred_np.shape)  # 96, 96
 #print(pred_np[0][0:15])  # 0 or 1
 cv2.imwrite("pred_image.png", pred_np*255)
-
-
 """
+
+
+
+
+""" matplotlib 使いにくい
 # Result
 plt.figure()
 plt.imshow(data["img"][0,:,:,:].permute(1, 2, 0))
