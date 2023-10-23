@@ -14,10 +14,17 @@ import segmentation_models_pytorch as smp
 from sklearn.model_selection import train_test_split
 #from PIL import Image
 
+import os
+
+
+
+
+
 
 # データフレーム
-#   dockerの場合変更の必要あり
-data = pd.read_csv("/usr/UNet-try/path_hw_docker.csv")
+num_data = int(sum(os.path.isfile(os.path.join('./data/noisy', name)) for name in os.listdir('./data/noisy')) / 2)
+d = {"imgpath":[f"./data/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/original/{i}.png" for i in range(num_data)]}
+data = pd.DataFrame(data=d)
 
 #   データをシャッフル
 shuffled_data = data.sample(frac=1, random_state=42)  # random_state はシャッフルの再現性を確保するためのもの
@@ -46,7 +53,7 @@ class Dataset(BaseDataset):
   def __getitem__(self, i):
     imgpath = self.imgpath_list[i]
     img = cv2.imread(imgpath)
-    img = cv2.resize(img, dsize = (256, 256))
+    img = cv2.resize(img, dsize = (96, 96))   #応急処置　元々2のべき乗とかならいらん
     img = img/255
     img = torch.from_numpy(img.astype(np.float32)).clone()
     img = img.permute(2, 0, 1)
@@ -56,9 +63,9 @@ class Dataset(BaseDataset):
     #label = np.asarray(label)
     label = cv2.imread(labelpath, cv2.IMREAD_GRAYSCALE)
     label = np.array(label)
-    label = cv2.resize(label, dsize = (256, 256))
+    label = cv2.resize(label, dsize = (96, 96))
     label = torch.from_numpy(label.astype(np.float32)).clone()
-    label = torch.nn.functional.one_hot(label.long(), num_classes=4)
+    label = torch.nn.functional.one_hot(label.long(), num_classes=2)
     label = label.to(torch.float32)
     label = label.permute(2, 0, 1) # (2, 0, 1) ⇒ (0, 3, 1, 2)
 
@@ -78,6 +85,12 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=0, shuff
 
 test_dataset = Dataset(test_df)
 test_loader = DataLoader(test_dataset, batch_size=1, num_workers=0)
+
+
+
+
+
+
 
 
 # UNet
@@ -133,33 +146,47 @@ class UNet_2D(nn.Module):
         self.UC3 = UpConv(256, 128) 
         self.UC4= UpConv(128, 64)
 
-        self.conv1 = nn.Conv2d(64, 4, kernel_size = 1)
+        self.conv1 = nn.Conv2d(64, 2, kernel_size = 1) #変更　64, 4 -> 64, 2
         self.soft = nn.Softmax(dim = 1)
 
     def forward(self, x):
+        #print(x.shape)
         x = self.TCB1(x)
+        #print(x.shape)
         x1 = x
         x = self.maxpool(x)
+        #print(x.shape)
 
         x = self.TCB2(x)
+        #print(x.shape)
         x2 = x
         x = self.maxpool(x)
+        #print(x.shape)
 
         x = self.TCB3(x)
+        #print(x.shape)
         x3 = x
         x = self.maxpool(x)
+        #print(x.shape)
 
         x = self.TCB4(x)
+        #print(x.shape)
         x4 = x
         x = self.maxpool(x)
+        #print(x.shape)
 
         x = self.TCB5(x)
+        #print(x.shape)
 
         x = self.UC1(x)
+        #print(x.shape)
         x = torch.cat([x4, x], dim = 1)
+        #print(x.shape)
         x = self.TCB6(x)
+        #print(x.shape)
 
         x = self.UC2(x)
+        #print(x.shape)
         x = torch.cat([x3, x], dim = 1)
         x = self.TCB7(x)
 
@@ -176,6 +203,11 @@ class UNet_2D(nn.Module):
         return x
 
 
+
+
+
+
+
 # GPU, Optimizer, Loss function
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 unet = UNet_2D().to(device)
@@ -186,6 +218,10 @@ BCELoss     = smp.losses.SoftBCEWithLogitsLoss()
 def criterion(pred,target):
     return 0.5*BCELoss(pred, target) + 0.5*TverskyLoss(pred, target)
 #criterion = nn.CrossEntropyLoss()
+
+
+
+
 
 # Training
 history = {"train_loss": []}
@@ -236,7 +272,7 @@ print("finish training")
 plt.plot(history["train_loss"])
 plt.xlabel('batch')
 plt.ylabel('loss')
-plt.savefig("/usr/UNet-try/result_png/train_loss.png")
+plt.savefig("./result/train_loss.png")
 
 
 # test
@@ -246,6 +282,8 @@ model.eval()
 with torch.no_grad():
   data = next(iter(test_loader))
   inputs, labels = data["img"], data["label"]
+  print(labels.shape)
+  print(type(labels))
   outputs = model(inputs)
   loss = criterion(outputs, labels)
   print("loss: ",loss.item())
@@ -253,18 +291,45 @@ with torch.no_grad():
 sigmoid = nn.Sigmoid()
 outputs = sigmoid(outputs)
 pred = torch.argmax(outputs, axis=1)
-pred = torch.nn.functional.one_hot(pred.long(), num_classes=4).to(torch.float32)
+pred = torch.nn.functional.one_hot(pred.long(), num_classes=2).to(torch.float32)
 
 
+# Result
+#print(data["img"][0,:,:,:].permute(1, 2, 0).shape)  # 96, 96, 3
+#print(type(data["img"][0,:,:,:].permute(1, 2, 0)))  # torch.tensor
+#orig = data["img"][0,:,:,:].permute(1, 2, 0).cpu().numpy()
+#print(np.unique(orig))   # 0 or 1
+#print(np.unique(np.sum(orig, axis=2)))   #  0 or 3
+orig = inputs[0,0,:,:].cpu().numpy()
+#print(orig.shape)   # 96, 96
+#print(np.unique(orig))   # 少数いっぱい
+cv2.imwrite("original_image.png", orig*255)
+
+lab = labels[0,1,:,:].cpu().numpy()
+cv2.imwrite("label_image.png", lab*255)
+
+#print(pred.shape)  # 1, 96, 96, 2
+#print(type(pred))  # torch.Tensor
+pred_np = pred[0,:,:,1].cpu().numpy()
+#print(pred_np.shape)  # 96, 96
+#print(pred_np[0][0:15])  # 0 or 1
+cv2.imwrite("pred_image.png", pred_np*255)
+
+
+"""
 # Result
 plt.figure()
 plt.imshow(data["img"][0,:,:,:].permute(1, 2, 0))
 plt.title("original_image")
 plt.axis("off")
-plt.savefig("/usr/UNet-try/result_png/original.png")
+plt.savefig("./result/original.png")
 
 plt.figure()
-classes = ["background","large_bowel","small_bowel","stomach"]
+#classes = ["background","large_bowel","small_bowel","stomach"]
+plt.imshow(pred[0,:,:,1])
+plt.axis("off")
+plt.savefig("./result/pred.png")
+
 fig, ax = plt.subplots(2, 4, figsize=(15,8))
 for i in range(2):
   for j, cl in enumerate(classes):
@@ -277,3 +342,4 @@ for i in range(2):
       ax[i,j].set_title(f"label_{cl}")
       ax[i,j].axis("off")
 plt.savefig("/usr/UNet-try/result_png/pred.png")
+"""
