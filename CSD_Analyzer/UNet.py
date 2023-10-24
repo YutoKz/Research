@@ -222,7 +222,7 @@ def criterion(pred,target):
 
 
 
-"""
+
 # Training
 history = {"train_loss": []}
 n = 0
@@ -273,7 +273,7 @@ plt.plot(history["train_loss"])
 plt.xlabel('batch')
 plt.ylabel('loss')
 plt.savefig("./output/train_loss.png")
-"""
+
 
 # test
 model = UNet_2D()
