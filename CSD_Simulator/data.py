@@ -39,13 +39,13 @@ def create_dataset() -> None:
             # DQD parameter
             #c_01 = -0.1                                            # 構造 
             if j == 0:
-                c_01 = random.uniform(-5.0, -3.0)
+                c_01 = random.uniform(-5.0, -0.5)
             elif j == 1:
-                c_01 = random.uniform(-3.0, -0.05)
+                c_01 = random.uniform(-0.5, -0.05)
             else:
                 c_01 = random.uniform(-0.05, -0.00001)
             c_gate0_0 = c_gate1_1 = random.uniform(-0.8, -0.2)      # 拡大縮小
-            c_gate0_1 = c_gate1_0 = random.uniform(-0.2, -0.001)    # 傾き
+            c_gate0_1 = c_gate1_0 = random.uniform(-0.1, -0.001)    # 傾き
             c_0 = -(c_01 + c_gate0_0 + c_gate1_0)
             c_1 = -(c_01 + c_gate0_1 + c_gate1_1)
             e = 2.0                                 # 拡大縮小          2.0~

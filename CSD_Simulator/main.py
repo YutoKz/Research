@@ -7,11 +7,11 @@ from simulation.double_dot import DoubleQuantumDot
 def main() -> None:
 
     # DQD parameter
-    c_01 = -0.1                             # 構造              ~ -3.0 ~ -0.05 ~ -0.00001 
-    c_gate0_0 = -0.1                        # 拡大縮小          -0.8 ~ -0.3
-    c_gate0_1 = -0.01                        # 傾き              -0.2 ~ -0.001
-    c_gate1_0 = -0.01                        # 傾き              -0.2 ~ -0.001
-    c_gate1_1 = -0.1                        # 拡大縮小          -0.8 ~  -0.3
+    c_01 = -0.1                           # 構造              ~ -0.5 ~ -0.05 ~ -0.00001 
+    c_gate0_0 = -0.5                        # 拡大縮小          -0.8 ~ -0.3
+    c_gate0_1 = -0.05                        # 傾き              -0.1 ~ -0.001
+    c_gate1_0 = -0.05                        # 傾き              -0.1 ~ -0.001
+    c_gate1_1 = -0.5                        # 拡大縮小          -0.8 ~  -0.3
     c_0 = -(c_01 + c_gate0_0 + c_gate1_0)
     c_1 = -(c_01 + c_gate0_1 + c_gate1_1)
     e = 2.0                                 # 拡大縮小          2.0~
@@ -21,7 +21,7 @@ def main() -> None:
     thickness = 0.05
     salt_prob = 0.0
     pepper_prob = 0.0
-    random_prob = 0.0
+    random_prob = 0.1
     gaussian = 1.0
 
     # range of v0 / v1
