@@ -33,7 +33,7 @@ def create_dataset() -> None:
     random.seed(0)
 
     for i in range(num_pattern):
-        if i % 1000 == 0:
+        if i % 100 == 0:
             print(i)
         for j in range(3):
             # DQD parameter
