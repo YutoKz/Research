@@ -17,10 +17,6 @@ from sklearn.model_selection import train_test_split
 import os
 
 
-
-
-
-
 # データフレーム
 num_data = int(sum(os.path.isfile(os.path.join('./data/noisy', name)) for name in os.listdir('./data/noisy')) / 2)
 d = {"imgpath":[f"./data/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/original/{i}.png" for i in range(num_data)]}
@@ -85,12 +81,6 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=0, shuff
 
 test_dataset = Dataset(test_df)
 test_loader = DataLoader(test_dataset, batch_size=1, num_workers=0)
-
-
-
-
-
-
 
 
 # UNet
@@ -204,10 +194,6 @@ class UNet_2D(nn.Module):
 
 
 
-
-
-
-
 # GPU, Optimizer, Loss function
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 unet = UNet_2D().to(device)
@@ -218,9 +204,6 @@ BCELoss     = smp.losses.SoftBCEWithLogitsLoss()
 def criterion(pred,target):
     return 0.5*BCELoss(pred, target) + 0.5*TverskyLoss(pred, target)
 #criterion = nn.CrossEntropyLoss()
-
-
-
 
 
 # Training
@@ -285,7 +268,7 @@ with torch.no_grad():
   for i, data in enumerate(test_loader):
     inputs, labels = data["img"], data["label"]
     outputs = model(inputs)
-    loss = criterion(outputs, labels)
+    #loss = criterion(outputs, labels)
     #print("loss: ",loss.item())
 
     outputs = sigmoid(outputs)
@@ -303,7 +286,7 @@ with torch.no_grad():
 
 
 
-""" 1枚のみの画像に対してテスト
+""" 学習にも用いたデータセットのうちの画像1枚に対してテスト
 # test
 model = UNet_2D()
 model.load_state_dict(torch.load("./models/train_15.pth"))
