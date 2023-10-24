@@ -24,8 +24,8 @@ def create_dataset() -> None:
 
     # Attention: need to be fixed!
     # range of v0 / v1
-    range_v0 = np.arange(0, 10, 0.1) #元0, 10, 0.05
-    range_v1 = np.arange(0, 10, 0.1)
+    range_v0 = np.arange(0, 10, 0.0625) #元0, 10, 0.05
+    range_v1 = np.arange(0, 10, 0.0625)
 
     # number of training data
     num_pattern = 1000
@@ -33,6 +33,8 @@ def create_dataset() -> None:
     random.seed(0)
 
     for i in range(num_pattern):
+        if i % 1000 == 0:
+            print(i)
         for j in range(3):
             # DQD parameter
             #c_01 = -0.1                                            # 構造 

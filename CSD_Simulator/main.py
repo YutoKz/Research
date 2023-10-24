@@ -25,8 +25,8 @@ def main() -> None:
     gaussian = 1.0
 
     # range of v0 / v1
-    range_v0 = np.arange(0, 10, 0.1) #元0, 10, 0.05
-    range_v1 = np.arange(0, 10, 0.1)
+    range_v0 = np.arange(0, 10, 0.0625) #元0, 10, 0.05
+    range_v1 = np.arange(0, 10, 0.0625)
 
 
     # DQD
