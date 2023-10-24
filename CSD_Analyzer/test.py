@@ -129,7 +129,7 @@ model.load_state_dict(torch.load("./output/models/train_15.pth"))
 #model.eval()
 sigmoid = nn.Sigmoid()
 
-img = cv2.imread("./big_csd_paper1_remove_text_gray.png")
+img = cv2.imread("./takahashi/big_csd_paper1_remove_text_gray.png")
 img = cv2.resize(img, dsize = (96, 96))   #応急処置　元々2のべき乗とかならいらん
 img = img/255
 img = torch.from_numpy(img.astype(np.float32)).clone()
