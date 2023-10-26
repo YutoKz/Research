@@ -14,7 +14,7 @@ import segmentation_models_pytorch as smp
 from sklearn.model_selection import train_test_split
 import os
 
-from data import Dataset
+from dataset import Dataset
 from model import UNet_2D
 
 
@@ -62,7 +62,7 @@ def criterion(pred,target):
 history = {"train_loss": [], "val_loss": []}
 n = 0
 m = 0
-epochs = 3
+epochs = 15
 
 for epoch in range(epochs):
   train_loss = 0
@@ -119,7 +119,6 @@ plt.savefig("./data/train_simu_output/val_loss.png")
 
 # test
 best_model_index = history["val_loss"].index(min(history["val_loss"]))
-print(best_model_index)
 model = UNet_2D()
 model.load_state_dict(torch.load(f"./models/train_{best_model_index+1}.pth"))
 model.eval()
