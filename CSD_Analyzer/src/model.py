@@ -1,13 +1,17 @@
-"""
-    単一の画像を学習済みモデルに突っ込む
-"""
+import pandas as pd
 import cv2
+from matplotlib import pyplot as plt
 import numpy as np
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset as BaseDataset
 import torch
 import torch.nn as nn
-#from PIL import Image
-
-import os
+import torch.nn.functional as F
+import torch.optim as optim
+from torchvision import transforms
+from torchvision.transforms import functional
+import segmentation_models_pytorch as smp
+from sklearn.model_selection import train_test_split
 
 
 # UNet
@@ -118,55 +122,3 @@ class UNet_2D(nn.Module):
         x = self.conv1(x)
 
         return x
-
-# GPU, Optimizer, Loss function
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-unet = UNet_2D().to(device)
-
-# test
-model = UNet_2D()
-model.load_state_dict(torch.load("./output/models/train_15.pth"))
-#model.eval()
-sigmoid = nn.Sigmoid()
-
-img = cv2.imread("./takahashi/big_csd_paper1_remove_text_gray.png")
-img = cv2.resize(img, dsize = (96, 96))   #応急処置　元々2のべき乗とかならいらん
-img = img/255
-img = torch.from_numpy(img.astype(np.float32)).clone()
-img = img.permute(2, 0, 1)
-img = img.unsqueeze(0)
-
-output = model(img)
-output = sigmoid(output)
-pred = torch.argmax(output, axis=1)
-pred = torch.nn.functional.one_hot(pred.long(), num_classes=2).to(torch.float32)
-
-orig = img[0,0,:,:].cpu().numpy()
-cv2.imwrite("./original.png", orig*255)
-
-pred_np = pred[0,:,:,1].cpu().numpy()
-cv2.imwrite("./pred.png", pred_np*255)
-
-
-"""
-with torch.no_grad():
-  for i, data in enumerate(test_loader):
-    inputs, labels = data["img"], data["label"]
-    outputs = model(inputs)
-    loss = criterion(outputs, labels)
-    #print("loss: ",loss.item())
-
-    outputs = sigmoid(outputs)
-    pred = torch.argmax(outputs, axis=1)
-    pred = torch.nn.functional.one_hot(pred.long(), num_classes=2).to(torch.float32)
-
-    orig = inputs[0,0,:,:].cpu().numpy()
-    cv2.imwrite(f"./output/result/{i}_original.png", orig*255)
-
-    lab = labels[0,1,:,:].cpu().numpy()
-    cv2.imwrite(f"./output/result/{i}_label.png", lab*255)
-    
-    pred_np = pred[0,:,:,1].cpu().numpy()
-    cv2.imwrite(f"./output/result/{i}_pred.png", pred_np*255)
-
-"""

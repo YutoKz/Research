@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 
 import os
 
-
+""" train.py
 # データフレーム
 num_data = int(sum(os.path.isfile(os.path.join('./data/noisy', name)) for name in os.listdir('./data/noisy')) / 2)
 d = {"imgpath":[f"./data/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/original/{i}.png" for i in range(num_data)]}
@@ -32,9 +32,10 @@ validation_data, test_data = train_test_split(temp_data, test_size=0.5, random_s
 train_df = train_data.reset_index(drop=True)
 val_df = validation_data.reset_index(drop=True)
 test_df = test_data.reset_index(drop=True)
-
+"""
 
 # Dataset, DataLoader
+""" data.py
 class Dataset(BaseDataset):
   def __init__(
       self,
@@ -70,7 +71,9 @@ class Dataset(BaseDataset):
   
   def __len__(self):
     return len(self.imgpath_list)
+"""
 
+""" train.py
 BATCH_SIZE = 8
 
 train_dataset = Dataset(train_df)
@@ -81,8 +84,9 @@ val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=0, shuff
 
 test_dataset = Dataset(test_df)
 test_loader = DataLoader(test_dataset, batch_size=1, num_workers=0)
+"""
 
-
+""" model.py
 # UNet
 class TwoConvBlock(nn.Module):
     def __init__(self, in_channels, middle_channels, out_channels):
@@ -191,9 +195,9 @@ class UNet_2D(nn.Module):
         x = self.conv1(x)
 
         return x
+"""
 
-
-
+""" train.py
 # GPU, Optimizer, Loss function
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 unet = UNet_2D().to(device)
@@ -283,7 +287,7 @@ with torch.no_grad():
     
     pred_np = pred[0,:,:,1].cpu().numpy()
     cv2.imwrite(f"./output/result/{i}_pred.png", pred_np*255)
-
+"""
 
 
 """ 学習にも用いたデータセットのうちの画像1枚に対してテスト
