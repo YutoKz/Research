@@ -13,11 +13,20 @@ from torchvision.transforms import functional
 import segmentation_models_pytorch as smp
 from sklearn.model_selection import train_test_split
 import os
+import shutil
 
 from dataset import Dataset
 from model import UNet_2D
 
+# make directories
+if os.path.exists("./data/train_simu_output"):
+  shutil.rmtree("./data/train_simu_output")
+if os.path.exists("./models"):
+  shutil.rmtree("./models")
 
+os.mkdir("./data/train_simu_output")  
+os.mkdir("./data/train_simu_output/result")
+os.mkdir("./models")
 
 # DataFrame
 num_data = int(sum(os.path.isfile(os.path.join('./data/simu_input/noisy', name)) for name in os.listdir('./data/simu_input/noisy')) / 2)
@@ -62,7 +71,7 @@ def criterion(pred,target):
 history = {"train_loss": [], "val_loss": []}
 n = 0
 m = 0
-epochs = 15
+epochs = 5
 
 for epoch in range(epochs):
   train_loss = 0
