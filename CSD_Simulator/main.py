@@ -7,26 +7,26 @@ from simulation.double_dot import DoubleQuantumDot
 def main() -> None:
 
     # DQD parameter
-    c_01 = -0.1                           # 構造              ~ -0.5 ~ -0.05 ~ -0.00001 
-    c_gate0_0 = -0.8                        # 拡大縮小          -0.8 ~ -0.3
-    c_gate0_1 = -0.1                        # 傾き              -0.1 ~ -0.001
-    c_gate1_0 = -0.1                        # 傾き              -0.1 ~ -0.001
-    c_gate1_1 = -0.8                        # 拡大縮小          -0.8 ~  -0.3
+    c_01 = -0.001                           # 構造              ~ -0.5 ~ -0.05 ~ -0.00001 
+    c_gate0_0 = -0.2                        # 拡大縮小          -0.8 ~ -0.3
+    c_gate0_1 = -0.01                       # 傾き              -0.1 ~ -0.001
+    c_gate1_0 = -0.01                        # 傾き              -0.1 ~ -0.001
+    c_gate1_1 = -0.2                        # 拡大縮小          -0.8 ~  -0.3
     c_0 = -(c_01 + c_gate0_0 + c_gate1_0)
     c_1 = -(c_01 + c_gate0_1 + c_gate1_1)
     e = 1.0                                 # 拡大縮小          2.0~
-    v_s = 0.07                               # 線形 / 非線形
+    v_s = 0.0                               # 線形 / 非線形
 
     # CSD parameter 
-    thickness = 0.02
+    thickness = 0.1
     salt_prob = 0.0
     pepper_prob = 0.0
     random_prob = 0.1
     gaussian = 1.0
 
     # range of v0 / v1
-    range_v0 = np.arange(0, 2, 0.005) #元0, 10, 0.05
-    range_v1 = np.arange(0, 2, 0.005)
+    range_v0 = np.arange(0, 10, 0.02) #元0, 10, 0.05
+    range_v1 = np.arange(0, 10, 0.02)
 
 
     # DQD

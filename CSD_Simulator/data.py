@@ -24,8 +24,8 @@ def create_dataset() -> None:
 
     # Attention: need to be fixed!
     # range of v0 / v1
-    range_v0 = np.arange(0, 10, 0.0625) #元0, 10, 0.05
-    range_v1 = np.arange(0, 10, 0.0625)
+    range_v0 = np.arange(0, 10, 0.02) #元0, 10, 0.05
+    range_v1 = np.arange(0, 10, 0.02)
 
     # number of training data
     num_pattern = 1000
@@ -39,20 +39,20 @@ def create_dataset() -> None:
             # DQD parameter
             #c_01 = -0.1                                            # 構造 
             if j == 0:
-                c_01 = random.uniform(-5.0, -0.5)
+                c_01 = random.uniform(-0.6, -0.4)
             elif j == 1:
-                c_01 = random.uniform(-0.5, -0.05)
+                c_01 = random.uniform(-0.4, -0.01)
             else:
-                c_01 = random.uniform(-0.05, -0.00001)
-            c_gate0_0 = c_gate1_1 = random.uniform(-0.8, -0.2)      # 拡大縮小
+                c_01 = random.uniform(-0.01, -0.001)
+            c_gate0_0 = c_gate1_1 = random.uniform(-0.3, -0.1)      # 拡大縮小
             c_gate0_1 = c_gate1_0 = random.uniform(-0.1, -0.001)    # 傾き
             c_0 = -(c_01 + c_gate0_0 + c_gate1_0)
             c_1 = -(c_01 + c_gate0_1 + c_gate1_1)
-            e = 2.0                                 # 拡大縮小          2.0~
+            e = 1.0                                 # 拡大縮小          2.0~
             v_s = 0.0                               # 線形 / 非線形
 
             # CSD parameter 
-            thickness = 0.05
+            thickness = 0.1
             salt_prob = 0.0
             pepper_prob = random.uniform(0.0, 0.2)
             random_prob = random.uniform(0.0, 0.5)
