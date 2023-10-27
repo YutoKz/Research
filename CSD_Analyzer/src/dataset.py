@@ -27,7 +27,9 @@ class Dataset(BaseDataset):
   def __getitem__(self, i):
     imgpath = self.imgpath_list[i]
     img = cv2.imread(imgpath)
-    img = cv2.resize(img, dsize = (96, 96))   #応急処置　元々2のべき乗とかならいらん
+    #img = cv2.resize(img, dsize = (96, 96))   #応急処置　元々16の倍数なら不要
+    required_size = [i for i in range(img.shape[0] - 15, img.shape[0] + 1) if i % 16 == 0]   # 解像度が16の倍数となるよう調整
+    img = cv2.resize(img, dsize = (required_size[0], required_size[0]))
     img = img/255
     img = torch.from_numpy(img.astype(np.float32)).clone()
     img = img.permute(2, 0, 1)
@@ -37,7 +39,9 @@ class Dataset(BaseDataset):
     #label = np.asarray(label)
     label = cv2.imread(labelpath, cv2.IMREAD_GRAYSCALE)
     label = np.array(label)
-    label = cv2.resize(label, dsize = (96, 96))
+    #label = cv2.resize(label, dsize = (96, 96))
+    required_size = [i for i in range(label.shape[0] - 15, label.shape[0] + 1) if i % 16 == 0]   # 解像度が16の倍数となるよう調整
+    label = cv2.resize(label, dsize = (required_size[0], required_size[0]))    
     label = torch.from_numpy(label.astype(np.float32)).clone()
     label = torch.nn.functional.one_hot(label.long(), num_classes=2)
     label = label.to(torch.float32)
