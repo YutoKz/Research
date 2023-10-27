@@ -1,7 +1,6 @@
 # type: ignore
 import os
 import shutil
-import matplotlib.pyplot as plt
 import numpy as np
 from simulation.double_dot import DoubleQuantumDot
 import random
