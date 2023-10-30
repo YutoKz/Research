@@ -8,8 +8,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torchvision import transforms
-from torchvision.transforms import functional
 import segmentation_models_pytorch as smp
 from sklearn.model_selection import train_test_split
 import os
@@ -71,7 +69,7 @@ def criterion(pred,target):
 history = {"train_loss": [], "val_loss": []}
 n = 0
 m = 0
-epochs = 5
+epochs = 10
 
 for epoch in range(epochs):
   train_loss = 0

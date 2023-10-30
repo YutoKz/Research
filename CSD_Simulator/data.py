@@ -23,8 +23,8 @@ def create_dataset() -> None:
 
     # Attention: need to be fixed!
     # range of v0 / v1
-    range_v0 = np.arange(0, 10, 0.02) #元0, 10, 0.05
-    range_v1 = np.arange(0, 10, 0.02)
+    range_v0 = np.arange(0, 10, 0.05) #元0, 10, 0.05
+    range_v1 = np.arange(0, 10, 0.05)
 
     # number of training data
     num_pattern = 1000
@@ -52,9 +52,9 @@ def create_dataset() -> None:
 
             # CSD parameter 
             thickness = 0.1
-            salt_prob = 0.0
+            salt_prob = random.uniform(0.0, 0.8)
             pepper_prob = random.uniform(0.0, 0.2)
-            random_prob = random.uniform(0.0, 0.5)
+            random_prob = random.uniform(0.0, 0.8)
             gaussian = random.uniform(0.8, 1.2)
 
 
