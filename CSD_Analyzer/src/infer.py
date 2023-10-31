@@ -17,7 +17,7 @@ unet = UNet_2D().to(device)
 
 # test
 model = UNet_2D()
-model.load_state_dict(torch.load("./models/train_1.pth"))
+model.load_state_dict(torch.load("./models/train_3.pth"))
 #model.eval()
 sigmoid = nn.Sigmoid()
 
