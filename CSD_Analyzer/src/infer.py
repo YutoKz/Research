@@ -21,8 +21,10 @@ model.load_state_dict(torch.load("./models/train_1.pth"))
 #model.eval()
 sigmoid = nn.Sigmoid()
 
-img = cv2.imread("./data/takahashi/big_csd_paper1_remove_text_gray.png")
-img = cv2.resize(img, dsize = (192, 192))   #応急処置　元々2のべき乗とかならいらん
+#img = cv2.imread("./data/takahashi/big_csd_paper1_remove_text_gray.png")
+#img = cv2.resize(img, dsize = (192, 192))   #応急処置　元々2のべき乗とかならいらん
+img = cv2.imread("./data/csd.png")
+
 required_height = [i for i in range(img.shape[0] - 15, img.shape[0] + 1) if i % 16 == 0]
 required_width = [i for i in range(img.shape[1] - 15, img.shape[1] + 1) if i % 16 == 0]
 print(f"height:{required_height}, width:{required_width}")
