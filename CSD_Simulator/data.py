@@ -55,7 +55,7 @@ def create_dataset() -> None:
             salt_prob = random.uniform(0.0, 0.8)
             pepper_prob = random.uniform(0.0, 0.2)
             random_prob = random.uniform(0.0, 0.8)
-            gaussian = random.uniform(0.8, 1.2)
+            gaussian = random.uniform(0.5, 1.0)
 
 
             # DQD

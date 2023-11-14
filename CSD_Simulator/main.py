@@ -19,14 +19,14 @@ def main() -> None:
 
     # CSD parameter 
     thickness = 0.1
-    salt_prob = 0.5
-    pepper_prob = 0.1
-    random_prob = 0.8
-    gaussian = 1.0
+    salt_prob = 0.0
+    pepper_prob = 0.0
+    random_prob = 0.0
+    gaussian = 0.7
 
     # range of v0 / v1
-    range_v0 = np.arange(0, 10, 0.05) #元0, 10, 0.05
-    range_v1 = np.arange(0, 10, 0.05)
+    range_v0 = np.arange(0, 10, 0.1) #元0, 10, 0.05
+    range_v1 = np.arange(0, 10, 0.1)
 
 
     # DQD
