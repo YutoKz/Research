@@ -31,6 +31,10 @@ os.mkdir("./models")
 
 # DataFrame
 num_data = int(sum(os.path.isfile(os.path.join('./data/simu_input/noisy', name)) for name in os.listdir('./data/simu_input/noisy')) / 2)
+
+# データセットの一部を使いたい場合に使用
+num_data = 150
+
 d = {"imgpath":[f"./data/simu_input/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/simu_input/original/{i}.png" for i in range(num_data)]}
 data = pd.DataFrame(data=d)
 
@@ -72,7 +76,7 @@ def criterion(pred,target):
 history = {"train_loss": [], "val_loss": []}
 n = 0
 m = 0
-epochs = 10
+epochs = 50
 
 for epoch in range(epochs):
   train_loss = 0
