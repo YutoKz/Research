@@ -32,8 +32,8 @@ os.mkdir("./models")
 # DataFrame
 num_data = int(sum(os.path.isfile(os.path.join('./data/simu_input/noisy', name)) for name in os.listdir('./data/simu_input/noisy')) / 2)
 
-# データセットの一部を使いたい場合に使用
-num_data = 150
+# データセットの一部を使いたい場合に使用。普段はコメントアウト
+num_data = 100
 
 d = {"imgpath":[f"./data/simu_input/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/simu_input/original/{i}.png" for i in range(num_data)]}
 data = pd.DataFrame(data=d)
@@ -48,6 +48,8 @@ validation_data, test_data = train_test_split(temp_data, test_size=0.5, random_s
 train_df = train_data.reset_index(drop=True)
 val_df = validation_data.reset_index(drop=True)
 test_df = test_data.reset_index(drop=True)
+
+print(f"num of training data: {len(train_df)}")
 
 # DataLoader
 BATCH_SIZE = 8
@@ -65,18 +67,20 @@ unet = UNet_2D().to(device)
 optimizer = optim.Adam(unet.parameters(), lr=0.001)
 
 # Loss function
+"""
 TverskyLoss = smp.losses.TverskyLoss(mode='multilabel', log_loss=False)
 BCELoss     = smp.losses.SoftBCEWithLogitsLoss()
 def criterion(pred,target):
     return 0.5*BCELoss(pred, target) + 0.5*TverskyLoss(pred, target)
-#criterion = nn.CrossEntropyLoss()
+"""
+criterion = nn.CrossEntropyLoss()
 
 
 # Training
 history = {"train_loss": [], "val_loss": []}
 n = 0
 m = 0
-epochs = 50
+epochs = 30
 
 for epoch in range(epochs):
   train_loss = 0
@@ -93,12 +97,13 @@ for epoch in range(epochs):
     train_loss += loss.item()
     history["train_loss"].append(loss.item())
     n += 1
+    """ データ数減らす実験のため一旦コメントアウト
     if i % ((len(train_df)//BATCH_SIZE)//10) == (len(train_df)//BATCH_SIZE)//10 - 1:   # df ⇒ train_dfに修正した
       print(f"epoch:{epoch+1}  index:{i+1}  train_loss:{train_loss/n:.5f}")
       n = 0
       train_loss = 0
       train_acc = 0
-
+    """
 
   unet.eval()
   with torch.no_grad():
