@@ -36,16 +36,16 @@ class TwoConvBlock(nn.Module):
 class UpConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
+        """
         self.up = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
         self.bn1 = nn.BatchNorm2d(in_channels)
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size = 2, padding="same")
         self.bn2 = nn.BatchNorm2d(out_channels)
+        """
+        self.ct = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
 
     def forward(self, x):
-        x = self.up(x)
-        x = self.bn1(x)
-        x = self.conv(x)
-        x = self.bn2(x)
+        x = self.ct(x)
         return x
 
 class UNet_2D(nn.Module):
@@ -65,49 +65,35 @@ class UNet_2D(nn.Module):
         self.UC1 = UpConv(1024, 512) 
         self.UC2 = UpConv(512, 256) 
         self.UC3 = UpConv(256, 128) 
-        self.UC4= UpConv(128, 64)
+        self.UC4 = UpConv(128, 64)
 
         self.conv1 = nn.Conv2d(64, 2, kernel_size = 1) #変更　64, 4 -> 64, 2
         self.soft = nn.Softmax(dim = 1)
 
     def forward(self, x):
-        #print(x.shape)
         x = self.TCB1(x)
-        #print(x.shape)
         x1 = x
         x = self.maxpool(x)
-        #print(x.shape)
 
         x = self.TCB2(x)
-        #print(x.shape)
         x2 = x
         x = self.maxpool(x)
-        #print(x.shape)
 
         x = self.TCB3(x)
-        #print(x.shape)
         x3 = x
         x = self.maxpool(x)
-        #print(x.shape)
 
         x = self.TCB4(x)
-        #print(x.shape)
         x4 = x
         x = self.maxpool(x)
-        #print(x.shape)
 
         x = self.TCB5(x)
-        #print(x.shape)
 
         x = self.UC1(x)
-        #print(x.shape)
         x = torch.cat([x4, x], dim = 1)
-        #print(x.shape)
         x = self.TCB6(x)
-        #print(x.shape)
 
         x = self.UC2(x)
-        #print(x.shape)
         x = torch.cat([x3, x], dim = 1)
         x = self.TCB7(x)
 
