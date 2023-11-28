@@ -1,34 +1,21 @@
 from functools import lru_cache
+from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
+from PIL import Image, ImageDraw
 from scipy.ndimage import gaussian_filter  # type: ignore  # noqa: PGH003
 import random
 
-def add_noise(image, salt_prob, pepper_prob, random_prob) -> npt.NDArray[np.float64]:
-    noisy_image = np.copy(image)
+from .utils import SimRange
+from .utils import to_grayscale, add_noise
 
-    total_pixels = image.size
-    num_salt = int(total_pixels * salt_prob)
-    num_pepper = int(total_pixels * pepper_prob)
-    num_random = int(total_pixels * random_prob)
+BorderType = Literal["3", "4", "5"]
 
-    # add Salt noise 
-    salt_coordinates = [np.random.randint(0, i - 1, num_salt) for i in image.shape]
-    noisy_image[salt_coordinates[0], salt_coordinates[1]] = 0
-
-    # add Pepper noise
-    pepper_coordinates = [np.random.randint(0, i - 1, num_pepper) for i in image.shape]
-    noisy_image[pepper_coordinates[0], pepper_coordinates[1]] = 1.0
-
-    # add Random noise
-    random_coordinates = [np.random.randint(0, i - 1, num_random) for i in image.shape]
-    noisy_image[random_coordinates[0], random_coordinates[1]] = [random.random() for i in range(num_random)]
-
-    return noisy_image
+Coord = tuple[float, float]
 
 
-class DoubleQuantumDot:
+class ClassicDoubleQuantumDot:
     """DQD(double quantum dot)を表現するクラス.
 
     量子ドットと周辺との間のキャパシタンスをコンストラクタに与える。
@@ -45,7 +32,7 @@ class DoubleQuantumDot:
         c_gate1_0: float,
         c_gate1_1: float,
         e: float,
-        v_s: float = 0.0,    # v_dは0として考えている
+        v_s: float = 0.0,  # v_dは0として考えている
     ) -> None:
         self.c_0 = c_0
         self.c_1 = c_1
@@ -88,15 +75,16 @@ class DoubleQuantumDot:
         random_prob: float = 0.0, 
         gaussian: float = 0.0,
     ) -> npt.NDArray[np.float64]:
-        """CSDをシミュレーションする関数.
+        """CSDをシミュレーションする関数. 塗りつぶしなし
 
         Args:
             range_v0 (npt.NDArray[np.float64]): v0の範囲
             range_v1 (npt.NDArray[np.float64]): v1の範囲
             
             thickness: 直線の太さ
-            salt: salt ノイズの割合
-            pepper: pepper ノイズの割合
+            salt_prob: salt ノイズの割合
+            pepper_prob: pepper ノイズの割合
+            random_prob: random ノイズの割合
             gaussian: ガウシアンフィルタの標準偏差
 
         Returns:
@@ -117,8 +105,144 @@ class DoubleQuantumDot:
 
         return original_csd, output_csd
 
+    def simulation_CSD_fill(
+        self,
+        range_v0: SimRange,
+        range_v1: SimRange,
+        width: int = 2,
+        intensity_background: float = 0.0,
+        intensity_line: float = 1.0,
+        intensity_triangle: float = 1.0,
+        salt_prob: float = 0.0,
+        pepper_prob: float = 0.0,
+        random_prob: float = 0.0, 
+        gaussian: float = 0.0,
+    ) -> npt.NDArray[np.float64]:
+        """CSDをシミュレーションする関数. 塗りつぶしあり
+
+        Args:
+            range_v0 (npt.NDArray[np.float64]): v0の範囲
+            range_v1 (npt.NDArray[np.float64]): v1の範囲
+            
+            width: 直線の太さ
+
+            intensity_background: 背景の強度 (0.0 ~ 1.0)
+            intensity_line: 直線の強度 (0.0 ~ 1.0)
+            intensity_triangle: 三角形の強度 (0.0 ~ 1.0)
+
+            salt_prob: salt ノイズの割合
+            pepper_prob: pepper ノイズの割合
+            random_prob: random ノイズの割合
+            gaussian: ガウシアンフィルタの標準偏差
+        
+        Returns:
+            npt.NDArray[np.float64]: CSDのヒートマップ
+        """
+        csd_img = Image.fromarray(np.zeros((len(range_v1), len(range_v0))))  # type: ignore  # noqa: PGH003
+        draw = ImageDraw.Draw(csd_img)
+
+        for n_1 in range(7):
+            for n_0 in range(7):
+                for border_type in ("3", "4", "5"):
+                    match self._get_line(range_v0, range_v1, n_0, n_1, border_type):
+                        case None:
+                            continue
+                        case start, end:
+                            draw.line([start, end], fill=1, width=width)
+
+                    triangle_1, triangel_2 = self._get_triangle(range_v0, range_v1, n_0, n_1)
+
+                    draw.polygon(triangle_1, fill=2)
+                    draw.polygon(triangel_2, fill=2)
+
+        # ラベル (背景：0  直線：1  三角形：2) 
+        label_csd = np.array(csd_img)
+
+        # 強度情報をもとにグレースケール化
+        grayscale_csd: npt.NDArray[np.float64] = to_grayscale(
+            label_csd, 
+            intensity_background=intensity_background, 
+            intensity_line=intensity_line,
+            intensity_triangle=intensity_triangle,
+        )
+        
+        # ノイズ付与
+        noisy_csd: npt.NDArray[np.float64] = add_noise(
+            grayscale_csd, 
+            salt_prob=salt_prob, 
+            pepper_prob=pepper_prob, 
+            random_prob=random_prob,
+        )  
+
+        # ガウシアンフィルタ
+        output_csd: npt.NDArray[np.float64] = gaussian_filter(noisy_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
+
+        return label_csd, output_csd
+
+    def _get_line(
+        self,
+        sim_range_v0: SimRange,
+        sim_range_v1: SimRange,
+        n_0: int,
+        n_1: int,
+        border_num: BorderType,
+    ) -> tuple[Coord, Coord] | None:
+        v0_start, v0_end = self.__range_v0(n_0, n_1, border_num)
+
+        start_index_v0 = self._scale(v0_start, sim_range_v0)
+        end_index_v0 = self._scale(v0_end, sim_range_v0)
+
+        v1_start = self.__func_border(v0_start, n_0, n_1, border_num)
+        v1_end = self.__func_border(v0_end, n_0, n_1, border_num)
+
+        start_index_v1 = self._scale(v1_start, sim_range_v1)
+        end_index_v1 = self._scale(v1_end, sim_range_v1)
+
+        return ((start_index_v0, start_index_v1), (end_index_v0, end_index_v1))
+
+    def _get_triangle(
+        self,
+        sim_range_v0: SimRange,
+        sim_range_v1: SimRange,
+        n_0: int,
+        n_1: int,
+    ) -> tuple[tuple[Coord, Coord, Coord], tuple[Coord, Coord, Coord]]:
+        _, start_3_v0 = self.__range_v0(n_0, n_1, "3")
+        start_3_v1 = self.__func_border(start_3_v0, n_0, n_1, "3")
+
+        start_4_v0, end_4_v0 = self.__range_v0(n_0, n_1, "4")
+        start_4_v1 = self.__func_border(start_4_v0, n_0, n_1, "4")
+
+        _, end_5_v0 = self.__range_v0(n_0 - 1, n_1, "5")
+        end_5_v1 = self.__func_border(end_5_v0, n_0 - 1, n_1, "5")
+
+        triangle_1 = (
+            (self._scale(start_3_v0, sim_range_v0), self._scale(start_3_v1, sim_range_v1)),
+            (self._scale(start_4_v0, sim_range_v0), self._scale(start_4_v1, sim_range_v1)),
+            (self._scale(end_5_v0, sim_range_v0), self._scale(end_5_v1, sim_range_v1)),
+        )
+
+        end_4_v1 = self.__func_border(end_4_v0, n_0, n_1, "4")
+
+        start_5_v0, _ = self.__range_v0(n_0, n_1, "5")
+        start_5_v1 = self.__func_border(start_5_v0, n_0, n_1, "5")
+
+        start_3_v0, _ = self.__range_v0(n_0 + 1, n_1 - 1, "3")
+        start_3_v1 = self.__func_border(start_3_v0, n_0 + 1, n_1 - 1, "3")
+
+        triangle_2 = (
+            (self._scale(end_4_v0, sim_range_v0), self._scale(end_4_v1, sim_range_v1)),
+            (self._scale(start_5_v0, sim_range_v0), self._scale(start_5_v1, sim_range_v1)),
+            (self._scale(start_3_v0, sim_range_v0), self._scale(start_3_v1, sim_range_v1)),
+        )
+
+        return triangle_1, triangle_2
+
+    def _scale(self, value: float, sim_range: SimRange) -> float:
+        return (value - sim_range.start) / sim_range.step
+
     def _calculate_CSD_heatmap(self, v_0: float, v_1: float, thickness: float) -> float:
-        for n_1 in range(5):    # TODO: 並列化したい
+        for n_1 in range(5):  # TODO: 並列化したい
             for n_0 in range(5):
                 n_0_start, n_0_end = self._range_3_v0(n_0, n_1)
                 if n_0_start <= v_0 <= n_0_end and self.__distance_border_3(v_0, v_1, n_0, n_1) <= thickness:
@@ -133,6 +257,15 @@ class DoubleQuantumDot:
                     return 1
 
         return 0
+
+    def __func_border(self, v_0: float, n_0: int, n_1: float, border_num: BorderType) -> float:
+        match border_num:
+            case "3":
+                return self._func_border_3(v_0, n_0, n_1)
+            case "4":
+                return self._func_border_4(v_0, n_0, n_1)
+            case "5":
+                return self._func_border_5(v_0, n_0, n_1)
 
     def __func_border_3(self, v_0: float, n_0: int, n_1: int) -> float:
         return (
@@ -201,6 +334,15 @@ class DoubleQuantumDot:
         bottom = np.sqrt(a**2 + b**2)
 
         return top / bottom
+
+    def __range_v0(self, n_0: int, n_1: int, border_num: BorderType) -> tuple[float, float]:
+        match border_num:
+            case "3":
+                return self._range_3_v0(n_0, n_1)
+            case "4":
+                return self._range_4_v0(n_0, n_1)
+            case "5":
+                return self._range_5_v0(n_0, n_1)
 
     def __range_3_v0(self, n_0: int, n_1: int) -> tuple[float, float]:
         """(19.4)式 (教科書参照) のv_0の範囲を計算する関数.
