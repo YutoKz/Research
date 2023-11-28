@@ -78,7 +78,7 @@ class ClassicDoubleQuantumDot:
             npt.NDArray[np.float64]: CSDのヒートマップ
         """
         csd = np.zeros((len(range_v1), len(range_v0)))
-        thickness = 0.01
+        thickness = 0.1
 
         for i, v0 in enumerate(range_v0):
             for j, v1 in enumerate(range_v1):
@@ -109,7 +109,7 @@ class ClassicDoubleQuantumDot:
                         case None:
                             continue
                         case start, end:
-                            draw.line([start, end], fill=1, width=5)
+                            draw.line([start, end], fill=1, width=2)
 
                     triangle_1, triangel_2 = self._get_triangle(range_v0, range_v1, n_0, n_1)
 

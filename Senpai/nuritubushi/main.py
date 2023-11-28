@@ -10,16 +10,16 @@ MethodType = Literal["classic", "hubbard"]
 
 
 def simulate_CSD(method: MethodType):
-    range_v0 = SimRange(0, 10, 0.05)
-    range_v1 = SimRange(0, 10, 0.05)
+    range_v0 = SimRange(0, 10, 0.1)
+    range_v1 = SimRange(0, 10, 0.1)
 
     match method:
         case "classic":
             c_01 = -0.1
-            c_gate0_0 = -0.8
-            c_gate0_1 = -0.1
-            c_gate1_0 = -0.1
-            c_gate1_1 = -0.8
+            c_gate0_0 = -0.2
+            c_gate0_1 = -0.01
+            c_gate1_0 = -0.01
+            c_gate1_1 = -0.2
             c_0 = -(c_01 + c_gate0_0 + c_gate1_0)
             c_1 = -(c_01 + c_gate0_1 + c_gate1_1)
             dqd = ClassicDoubleQuantumDot(
@@ -31,7 +31,7 @@ def simulate_CSD(method: MethodType):
                 c_gate1_0=c_gate1_0,
                 c_gate1_1=c_gate1_1,
                 e=1,
-                v_s=0.07,
+                v_s=0.7,
             )
 
             # csd = dqd.simulation_CSD(range_v0=range_v0, range_v1=range_v1)
@@ -64,7 +64,7 @@ def simulate_CSD(method: MethodType):
 
 
 def main() -> None:
-    simulate_CSD(method="hubbard")
+    simulate_CSD(method="classic")
 
 
 if __name__ == "__main__":
