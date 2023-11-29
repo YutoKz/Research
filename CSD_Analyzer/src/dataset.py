@@ -21,6 +21,7 @@ class Dataset(BaseDataset):
       classes = None,
       augmentation = None
       ):
+    self.classes = classes
     self.imgpath_list = df.imgpath
     self.labelpath_list = df.labelpath
 
@@ -43,9 +44,9 @@ class Dataset(BaseDataset):
     required_width = [i for i in range(label.shape[1] - 15, label.shape[1] + 1) if i % 16 == 0]   # 解像度が16の倍数となるよう調整
     label = cv2.resize(label, dsize = (required_width[0], required_height[0]))    
     label = torch.from_numpy(label.astype(np.float32)).clone()
-    label = torch.nn.functional.one_hot(label.long(), num_classes=2)
+    label = torch.nn.functional.one_hot(label.long(), num_classes=self.classes)
     label = label.to(torch.float32)
-    label = label.permute(2, 0, 1) # (2, 0, 1) ⇒ (0, 3, 1, 2)
+    label = label.permute(2, 0, 1)   # おそらく、dataloaderから出てくるとき label[データ数, クラス数, 縦, 横]
 
     data = {"img": img, "label": label}
     return data
