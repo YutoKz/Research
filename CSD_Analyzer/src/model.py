@@ -49,7 +49,7 @@ class UpConv(nn.Module):
         return x
 
 class UNet_2D(nn.Module):
-    def __init__(self):
+    def __init__(self, classes):
         super().__init__()
         self.TCB1 = TwoConvBlock(3, 64, 64)
         self.TCB2 = TwoConvBlock(64, 128, 128)
@@ -67,7 +67,7 @@ class UNet_2D(nn.Module):
         self.UC3 = UpConv(256, 128) 
         self.UC4 = UpConv(128, 64)
 
-        self.conv1 = nn.Conv2d(64, 2, kernel_size = 1) #変更　64, 4 -> 64, 2
+        self.conv1 = nn.Conv2d(64, classes, kernel_size = 1) #変更　64, 4 -> 64, 2
         self.soft = nn.Softmax(dim = 1)
 
     def forward(self, x):
