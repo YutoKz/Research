@@ -57,6 +57,7 @@ val_df = validation_data.reset_index(drop=True)
 test_df = test_data.reset_index(drop=True)
 
 print(f"num of training data: {len(train_df)}")
+print()
 
 # DataLoader
 BATCH_SIZE = 8
@@ -148,7 +149,7 @@ best_model_index = history["val_loss"].index(min(history["val_loss"]))
 print(f"Best Model: train_{best_model_index+1}.pth")
 os.rename(f"./models/train_{best_model_index+1}.pth", f"./models/train_{best_model_index+1}_best.pth")
 model = UNet_2D(classes=classes)
-model.load_state_dict(torch.load(f"./models/train_{best_model_index+1}.pth"))
+model.load_state_dict(torch.load(f"./models/train_{best_model_index+1}_best.pth"))
 model.eval()
 sigmoid = nn.Sigmoid()
 
