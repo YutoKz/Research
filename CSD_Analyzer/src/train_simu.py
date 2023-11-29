@@ -146,6 +146,7 @@ plt.savefig("./data/output_train_simu/val_loss.png")
 # test
 best_model_index = history["val_loss"].index(min(history["val_loss"]))
 print(f"Best Model: train_{best_model_index+1}.pth")
+os.rename(f"./models/train_{best_model_index+1}.pth", f"./models/train_{best_model_index+1}_best.pth")
 model = UNet_2D(classes=classes)
 model.load_state_dict(torch.load(f"./models/train_{best_model_index+1}.pth"))
 model.eval()
