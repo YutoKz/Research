@@ -2,7 +2,8 @@
 import os
 import shutil
 import numpy as np
-from simulation.double_dot import DoubleQuantumDot
+from simulation.double_dot import ClassicDoubleQuantumDot
+from simulation.utils import SimRange
 import random
 
 import cv2
@@ -12,22 +13,24 @@ def create_dataset() -> None:
     
     """
     # make directories
-    if os.path.exists("./data/noisy"):
-        shutil.rmtree("./data/noisy")
+    if os.path.exists("./output_data/noisy"):
+        shutil.rmtree("./output_data/noisy")
 
-    if os.path.exists("./data/original"):
-        shutil.rmtree("./data/original")
+    if os.path.exists("./output_data/label"):
+        shutil.rmtree("./output_data/label")
     
-    os.mkdir("./data/noisy")
-    os.mkdir("./data/original")
+    os.mkdir("./output_data/noisy")
+    os.mkdir("./output_data/label")
 
     # Attention: need to be fixed!
     # range of v0 / v1
-    range_v0 = np.arange(0, 10, 0.05) #元0, 10, 0.05
-    range_v1 = np.arange(0, 10, 0.05)
+    #range_v0 = np.arange(0, 10, 0.1) #元0, 10, 0.05
+    #range_v1 = np.arange(0, 10, 0.1)
+    range_v0 = SimRange(0, 10, 0.1)
+    range_v1 = SimRange(0, 10, 0.1)
 
     # number of training data
-    num_pattern = 1000
+    num_pattern = 500
 
     random.seed(0)
 
@@ -36,30 +39,32 @@ def create_dataset() -> None:
             print(i)
         for j in range(3):
             # DQD parameter
-            #c_01 = -0.1                                            # 構造 
             if j == 0:
-                c_01 = random.uniform(-0.6, -0.4)
+                c_01 = random.uniform(-0.1, -0.35)
             elif j == 1:
-                c_01 = random.uniform(-0.4, -0.01)
+                c_01 = random.uniform(-0.1, -0.35)
             else:
-                c_01 = random.uniform(-0.01, -0.001)
-            c_gate0_0 = c_gate1_1 = random.uniform(-0.3, -0.1)      # 拡大縮小
-            c_gate0_1 = c_gate1_0 = random.uniform(-0.1, -0.001)    # 傾き
+                c_01 = random.uniform(-0.1, -0.35)
+            c_gate0_0 = c_gate1_1 = random.uniform(-0.3, -0.25)      # 拡大縮小
+            c_gate0_1 = c_gate1_0 = -0.08    # 傾き
             c_0 = -(c_01 + c_gate0_0 + c_gate1_0)
             c_1 = -(c_01 + c_gate0_1 + c_gate1_1)
             e = 1.0                                 # 拡大縮小          2.0~
-            v_s = 0.0                               # 線形 / 非線形
+            v_s = 0.7                               # 線形 / 非線形
 
             # CSD parameter 
-            thickness = 0.1
-            salt_prob = random.uniform(0.0, 0.8)
-            pepper_prob = random.uniform(0.0, 0.2)
-            random_prob = random.uniform(0.0, 0.8)
-            gaussian = random.uniform(0.5, 1.0)
-
+            #thickness = 0.1
+            width = 2
+            intensity_background = 0.45,
+            intensity_line = 0.55,
+            intensity_triangle = 0.65,
+            salt_prob = 0.0
+            pepper_prob = 0.0
+            random_prob = 0.0
+            gaussian = 2.0
 
             # DQD
-            dqd = DoubleQuantumDot(
+            dqd = ClassicDoubleQuantumDot(
                 c_0=c_0,
                 c_1=c_1,
                 c_01=c_01,
@@ -72,25 +77,30 @@ def create_dataset() -> None:
             )
 
             # CSD
-            original_csd, noisy_csd = dqd.simulation_CSD(
+            label_csd, noisy_csd = dqd.simulation_CSD_fill(
                 range_v0=range_v0, 
                 range_v1=range_v1, 
-                thickness=thickness, 
+                width=width, 
+                intensity_background=intensity_background,
+                intensity_line=intensity_line,
+                intensity_triangle=intensity_triangle,
                 salt_prob=salt_prob,
                 pepper_prob=pepper_prob,
                 random_prob=random_prob,
-                gaussian=gaussian, 
+                gaussian=gaussian,
             )
 
+            # 注意！　逆三角形実装まで、一時的にnp.flip() ⇒ np.rot90()に変更中
+
             # original CSD
-            original_csd_confirm = original_csd * 255
-            cv2.imwrite(f"./data/original/{3*i+j}.png", np.flip(original_csd, axis=0))
-            cv2.imwrite(f"./data/original/{3*i+j}_gray.png", np.flip(original_csd_confirm, axis=0))
+            label_csd_gray = label_csd * 100
+            cv2.imwrite(f"./output_data/label/{3*i+j}.png", np.rot90(label_csd)) #np.flip(label_csd, axis=0)
+            cv2.imwrite(f"./output_data/label/{3*i+j}_gray.png", np.rot90(label_csd_gray)) #np.flip(label_csd_gray, axis=0)
 
             # noisy CSD
-            noisy_csd_confirm = noisy_csd * 255
-            cv2.imwrite(f"./data/noisy/{3*i+j}.png", np.flip(noisy_csd, axis=0))
-            cv2.imwrite(f"./data/noisy/{3*i+j}_gray.png", np.flip(noisy_csd_confirm, axis=0))
+            noisy_csd_gray = noisy_csd * 255
+            cv2.imwrite(f"./output_data/noisy/{3*i+j}.png", np.rot90(noisy_csd)) #np.flip(noisy_csd, axis=0)
+            cv2.imwrite(f"./output_data/noisy/{3*i+j}_gray.png", np.rot90(noisy_csd_gray)) #np.flip(noisy_csd_gray, axis=0)
 
 if __name__ == "__main__":
     create_dataset()
