@@ -11,12 +11,15 @@ import os
 
 from model import UNet_2D
 
+# 分類するクラス数
+classes = 2
+
 # GPU, Optimizer, Loss function
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-unet = UNet_2D().to(device)
+unet = UNet_2D(classes=classes).to(device)
 
 # test
-model = UNet_2D()
+model = UNet_2D(classes=classes)
 model.load_state_dict(torch.load("./models/train_29.pth"))
 #model.eval()
 sigmoid = nn.Sigmoid()
