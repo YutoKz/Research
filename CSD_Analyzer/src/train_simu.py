@@ -161,7 +161,7 @@ with torch.no_grad():
     #print("loss: ",loss.item())
 
     outputs = sigmoid(outputs)
-    pred = torch.argmax(outputs, axis=1)
+    pred = torch.argmax(outputs, dim=1)
     pred = torch.nn.functional.one_hot(pred.long(), num_classes=classes).to(torch.float32)
 
     orig_np = inputs[0,0,:,:].cpu().numpy()
