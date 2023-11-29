@@ -40,7 +40,7 @@ classes = max(np.unique(np.array(cv2.imread("./data/"+folder_name+"/label/0.png"
 print(f"num of classes: {classes}")
 
 # データセットの一部を使いたい場合に使用。普段はコメントアウト
-num_data = 300
+num_data = 100
 
 d = {"imgpath":[f"./data/{folder_name}/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/{folder_name}/label/{i}.png" for i in range(num_data)]}
 data = pd.DataFrame(data=d)
@@ -88,7 +88,7 @@ criterion = nn.CrossEntropyLoss()
 history = {"train_loss": [], "val_loss": []}
 n = 0
 m = 0
-epochs = 10
+epochs = 30
 
 for epoch in range(epochs):
   train_loss = 0
@@ -171,6 +171,8 @@ with torch.no_grad():
     lab_np = torch.argmax(labels[0,:,:,:], dim=0).cpu().numpy()
     cv2.imwrite(f"./data/output_train_simu/result/{i}_label.png", lab_np*255//(classes-1))
     
+    pred_np = torch.argmax(pred[0,:,:,:], dim=2).cpu().numpy()
+    cv2.imwrite(f"./data/output_train_simu/result/{i}_pred.png", pred_np*255//(classes-1))
     for j in range(classes):
       if j != 0:
         pred_np = pred[0,:,:,j].cpu().numpy()
