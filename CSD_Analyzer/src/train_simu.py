@@ -19,23 +19,30 @@ import shutil
 from dataset import Dataset
 from model import UNet_2D
 
+# 学習データセットのフォルダ名
+folder_name = "input_simu"
+
 # make directories
-if os.path.exists("./data/train_simu_output"):
-  shutil.rmtree("./data/train_simu_output")
+if os.path.exists("./data/output_train_simu"):
+  shutil.rmtree("./data/output_train_simu")
 if os.path.exists("./models"):
   shutil.rmtree("./models")
 
-os.mkdir("./data/train_simu_output")  
-os.mkdir("./data/train_simu_output/result")
+os.mkdir("./data/output_train_simu")  
+os.mkdir("./data/output_train_simu/result")
 os.mkdir("./models")
 
 # DataFrame
-num_data = int(sum(os.path.isfile(os.path.join('./data/simu_input/noisy', name)) for name in os.listdir('./data/simu_input/noisy')) / 2)
+num_data = int(sum(os.path.isfile(os.path.join('./data/'+folder_name+'/noisy', name)) for name in os.listdir('./data/'+folder_name+'/noisy')) / 2)
+
+# クラス数
+classes = max(np.unique(np.array(cv2.imread("./data/"+folder_name+"/label/0.png", cv2.IMREAD_GRAYSCALE))).tolist()) + 1
+print(f"num of classes: {classes}")
 
 # データセットの一部を使いたい場合に使用。普段はコメントアウト
-num_data = 100
+num_data = 300
 
-d = {"imgpath":[f"./data/simu_input/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/simu_input/original/{i}.png" for i in range(num_data)]}
+d = {"imgpath":[f"./data/{folder_name}/noisy/{i}_gray.png" for i in range(num_data)], "labelpath": [f"./data/{folder_name}/label/{i}.png" for i in range(num_data)]}
 data = pd.DataFrame(data=d)
 
 # shuffle data
@@ -53,9 +60,9 @@ print(f"num of training data: {len(train_df)}")
 
 # DataLoader
 BATCH_SIZE = 8
-train_dataset = Dataset(train_df)
-val_dataset = Dataset(val_df)
-test_dataset = Dataset(test_df)
+train_dataset = Dataset(train_df, classes=classes)
+val_dataset = Dataset(val_df, classes=classes)
+test_dataset = Dataset(test_df, classes=classes)
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=0,shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, num_workers=0, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=1, num_workers=0)
@@ -63,7 +70,7 @@ test_loader = DataLoader(test_dataset, batch_size=1, num_workers=0)
 
 # GPU, Optimizer
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-unet = UNet_2D().to(device)
+unet = UNet_2D(classes=classes).to(device)
 optimizer = optim.Adam(unet.parameters(), lr=0.001)
 
 # Loss function
@@ -80,7 +87,7 @@ criterion = nn.CrossEntropyLoss()
 history = {"train_loss": [], "val_loss": []}
 n = 0
 m = 0
-epochs = 30
+epochs = 10
 
 for epoch in range(epochs):
   train_loss = 0
@@ -129,16 +136,17 @@ plt.figure()
 plt.plot(history["train_loss"])
 plt.xlabel('batch')
 plt.ylabel('loss')
-plt.savefig("./data/train_simu_output/train_loss.png")
+plt.savefig("./data/output_train_simu/train_loss.png")
 plt.figure()
 plt.plot(history["val_loss"])
 plt.xlabel('batch')
 plt.ylabel('loss')
-plt.savefig("./data/train_simu_output/val_loss.png")
+plt.savefig("./data/output_train_simu/val_loss.png")
 
 # test
 best_model_index = history["val_loss"].index(min(history["val_loss"]))
-model = UNet_2D()
+print(f"Best Model: train_{best_model_index+1}.pth")
+model = UNet_2D(classes=classes)
 model.load_state_dict(torch.load(f"./models/train_{best_model_index+1}.pth"))
 model.eval()
 sigmoid = nn.Sigmoid()
@@ -152,13 +160,16 @@ with torch.no_grad():
 
     outputs = sigmoid(outputs)
     pred = torch.argmax(outputs, axis=1)
-    pred = torch.nn.functional.one_hot(pred.long(), num_classes=2).to(torch.float32)
+    pred = torch.nn.functional.one_hot(pred.long(), num_classes=classes).to(torch.float32)
 
-    orig = inputs[0,0,:,:].cpu().numpy()
-    cv2.imwrite(f"./data/train_simu_output/result/{i}_original.png", orig*255)
+    orig_np = inputs[0,0,:,:].cpu().numpy()
+    cv2.imwrite(f"./data/output_train_simu/result/{i}_original.png", orig_np*255)
 
-    lab = labels[0,1,:,:].cpu().numpy()
-    cv2.imwrite(f"./data/train_simu_output/result/{i}_label.png", lab*255)
+    #lab_np = labels[0,1,:,:].cpu().numpy()
+    lab_np = torch.argmax(labels[0,:,:,:], dim=0).cpu().numpy()
+    cv2.imwrite(f"./data/output_train_simu/result/{i}_label.png", lab_np*255//(classes-1))
     
-    pred_np = pred[0,:,:,1].cpu().numpy()
-    cv2.imwrite(f"./data/train_simu_output/result/{i}_pred.png", pred_np*255)
+    for j in range(classes):
+      if j != 0:
+        pred_np = pred[0,:,:,j].cpu().numpy()
+        cv2.imwrite(f"./data/output_train_simu/result/{i}_class{j}.png", pred_np*255)
