@@ -55,7 +55,6 @@ def detect_line(
     df = pd.DataFrame(lines_list, columns=["slope", "intercept"])
     df.to_csv("./data/output_hough/line_parapeters.csv", index=False)
 
-
 def detect_line_segment(
     filepath: str,
     edge_extraction: bool = True,
@@ -113,9 +112,9 @@ def detect_line_segment(
     df.to_csv("./data/output_hough/line_parapeters.csv", index=False)
 
 if __name__ == "__main__":
-    filepath_line = "./data/output_infer/class1.png"
-    filepath_triangle = "./data/output_infer/class2.png"
-    filepath = integrate_edges(filepath_line, filepath_triangle)
+    #filepath_line = "./data/output_infer/class1.png"
+    #filepath_triangle = "./data/output_infer/class2.png"
+    #filepath = integrate_edges(filepath_line, filepath_triangle)
 
     filepath = "./data/output_utils/small.png"
     
@@ -123,7 +122,7 @@ if __name__ == "__main__":
         filepath=filepath, 
         edge_extraction=False,
         hough_threshold=30,         # 10
-        hough_minLineLength=5,     # 10
+        hough_minLineLength=10,     # 10
         hough_maxLineGap=2          # 8
     )
     
