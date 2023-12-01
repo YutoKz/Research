@@ -22,7 +22,12 @@ class SimRange:
         """シミュレーション範囲をnumpy配列で返す."""
         return np.arange(self.start, self.end, self.step)
 
-def to_grayscale(image, intensity_background, intensity_line, intensity_triangle):
+def to_grayscale(
+        image, 
+        intensity_background,
+        intensity_line,
+        intensity_triangle
+    ):
     """入力画像(ラベル形式)を、各要素の強度情報をもとにグレースケール化する。ただし値は0.0~1.0とする。"""
     grayscale_csd = np.copy(image)
     grayscale_csd[grayscale_csd == 0] = intensity_background
@@ -31,7 +36,12 @@ def to_grayscale(image, intensity_background, intensity_line, intensity_triangle
     
     return grayscale_csd
 
-def add_noise(image, salt_prob, pepper_prob, random_prob) -> npt.NDArray[np.float64]:
+def add_noise(
+        image, 
+        salt_prob, 
+        pepper_prob, 
+        random_prob
+    ) -> npt.NDArray[np.float64]:
     """入力画像にノイズを付与する。"""
     noisy_image = np.copy(image)
 
