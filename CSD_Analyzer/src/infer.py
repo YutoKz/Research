@@ -57,7 +57,9 @@ cv2.imwrite("./data/output_infer/original.png", orig*255)
 
 pred_np = torch.argmax(pred[0,:,:,:], dim=2).cpu().numpy()
 cv2.imwrite(f"./data/output_infer/pred.png", pred_np*255//(classes-1))
+cv2.imwrite(f"./data/output_infer/pred_binary.png", np.where(pred_np != 0, 1, pred_np)*255)
 for j in range(classes):
       if j != 0:
         pred_np = pred[0,:,:,j].cpu().numpy()
-        cv2.imwrite(f"./data/output_infer/class{j}.png", pred_np*255)
+        cv2.imwrite(f"./data/output_infer/pred_class{j}.png", pred_np*255)
+
