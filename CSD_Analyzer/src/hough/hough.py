@@ -70,6 +70,7 @@ def detect_line_segment(
     if os.path.exists("./data/output_hough"):
         shutil.rmtree("./data/output_hough")
     os.mkdir("./data/output_hough")
+    os.mkdir("./data/output_hough/individual_line")
 
     # 画像の読み込み
     image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
@@ -92,7 +93,8 @@ def detect_line_segment(
     num_of_vertical_lines = 0
     num_of_interdot_lines = 0
     lines_list = []
-    for line in lines:
+    all_lines_image = np.copy(rgb_image)
+    for i, line in enumerate(lines):
         x1, y1, x2, y2 = line[0]
         
         # 直線の切片と傾き
@@ -102,28 +104,35 @@ def detect_line_segment(
         intercept = (height - y1) - slope * x1
 
         # 直線を描画
+        one_line_image = np.copy(rgb_image)
         if slope < -1:
             # 赤
             line_color = (0, 0, 255)
             num_of_vertical_lines += 1
             lines_list.append(["vertical", slope, intercept * voltage_per_pixel])
+            cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
+            cv2.imwrite(f"./data/output_hough/individual_line/vertical_{i}.png", one_line_image)
         elif -1 <= slope <= 0:
             # 緑
             line_color = (0, 255, 0)
             num_of_horizontal_lines += 1
             lines_list.append(["horizontal",slope, intercept * voltage_per_pixel])
+            cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
+            cv2.imwrite(f"./data/output_hough/individual_line/horizontal_{i}.png", one_line_image)
         else:
             # 青
             line_color = (255, 0, 0)
             num_of_interdot_lines += 1
             lines_list.append(["interdot", slope, intercept * voltage_per_pixel])
-        cv2.line(rgb_image, (x1, y1), (x2, y2), line_color, 1)
+            cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
+            cv2.imwrite(f"./data/output_hough/individual_line/interdot_{i}.png", one_line_image)
+        cv2.line(all_lines_image, (x1, y1), (x2, y2), line_color, 1)
     print(f"|- Horizontal: {num_of_horizontal_lines}\n|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}")
 
     # 結果の保存
-    cv2.imwrite("./data/output_hough/detected_lines.png", rgb_image)
+    cv2.imwrite("./data/output_hough/detected_lines.png", all_lines_image)
     df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
-    df.sort_values(by="type").to_csv("./data/output_hough/line_parapeters.csv", index=False)
+    df.sort_values(by="type").to_csv("./data/output_hough/line_parapeters.csv", index=True)
 
 # CSDの特徴を考慮し、傾きの範囲を3分割して個別にハフ変換するために実装
 # 理想的には、異なる3つのtheta区間に一つずつ目的の傾きが存在するため、
