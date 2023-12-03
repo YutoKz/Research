@@ -138,10 +138,55 @@ def detect_line_segment(
     df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
     df.sort_values(by="type").to_csv("./data/output_hough/line_parapeters.csv", index=True)
 
+
+
+def hough_transform(
+    img,
+    rho_res,
+    theta_res
+) -> npt.NDArray:
+    """ ハフ変換した結果を rho-theta 図で保存、2次元配列として返す。
+    
+    Args:
+        img: 入力画像
+        rho_res: rho 解像度 [px / px]
+        theta_res: theta 解像度 [rad / px]
+    """
+    # エッジ座標
+    y, x = np.where(img)
+
+    # 各θごとのヒストグラムを保存
+    hough = []
+ 
+    # rhoの最大値は画像の対角
+    rho_max = np.ceil(np.sqrt(img.shape[0] * img.shape[0] + img.shape[1] * img.shape[1]) / rho_res)
+    rng = np.round(np.pi / theta_res)
+ 
+    for i in np.arange(-rng, rng):
+        rho2 = np.round((x * np.cos(i * theta_res) + y * np.sin(i * theta_res)) / rho_res)
+        hist, _ = np.histogram(rho2, bins=np.arange(0, rho_max))
+        hough.append(hist)
+    
+    # 縦軸：ρ, 横軸：θ　2次元配列
+    hough_array = np.array(hough).T  # 転置して各列が異なる角度に対応
+    
+    # -pi ~ pi のρ-θ図を作成
+    plt.imshow(hough_array, cmap='viridis', extent=[-180, 180, 0, rho_max*rho_res], aspect='auto', origin='lower')
+    plt.colorbar(label='Votes')
+    plt.title('Hough Transform in rho - theta Space')
+    plt.xlabel('Theta [degree]')
+    plt.ylabel('Rho [pixel]')
+    plt.savefig(output_folder + "/rho_theta.png")
+    plt.close()
+
+    return hough_array
+
+
+
 MethodType = Literal["slope_intercept", "slope"]
 
 # CSD の性質を活用したハフ変換
-def hough_transform(
+def hough_transform_CSD(
     method: MethodType,
     filepath: str, 
     voltage_per_pixel: float = 1.0,
@@ -177,33 +222,9 @@ def hough_transform(
     height, width = img.shape[:2]
     img = np.array(img)
     
-    # エッジ座標
-    y, x = np.where(img)
-
-    # 各θごとのヒストグラムを保存
-    hough = []
- 
-    # rhoの最大値は画像の対角
-    rho_max = np.ceil(np.sqrt(height * height + width * width) / rho_res)
-    rng = np.round(np.pi / theta_res)
- 
-    for i in np.arange(-rng, rng):
-        rho2 = np.round((x * np.cos(i * theta_res) + y * np.sin(i * theta_res)) / rho_res)
-        hist, _ = np.histogram(rho2, bins=np.arange(0, rho_max))
-        hough.append(hist)
-    
     # 縦軸：ρ, 横軸：θ　2次元配列
-    hough_array = np.array(hough).T  # 転置して各列が異なる角度に対応
-    
-    # -pi ~ pi のρ-θ図を作成
-    plt.imshow(hough_array, cmap='viridis', extent=[-180, 180, 0, rho_max*rho_res], aspect='auto', origin='lower')
-    plt.colorbar(label='Votes')
-    plt.title('Hough Transform in rho - theta Space')
-    plt.xlabel('Theta [degree]')
-    plt.ylabel('Rho [pixel]')
-    plt.savefig(output_folder + "/rho_theta.png")
-    plt.close()
-    
+    hough_array = hough_transform(img, rho_res, theta_res)
+
     # ρ-θ図を3つの範囲に分割
     theta_array = np.arange(hough_array.shape[1])
     hough_tmp = np.copy(hough_array)
@@ -463,7 +484,7 @@ if __name__ == "__main__":
     filepath = integrate_edges(filepath_line, filepath_triangle)
 
    
-    hough_transform(
+    hough_transform_CSD(
         method="slope",
         filepath=filepath,
         threshold_vertical=23,
