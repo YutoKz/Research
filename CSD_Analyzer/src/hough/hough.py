@@ -8,6 +8,7 @@ import os, shutil
 from utils import integrate_edges
 
 # あとからdetect_line_segmentのみ改良していったので、こっちを使う場合は注意
+
 def detect_line(
     filepath: str,
     edge_extraction: bool = True,
