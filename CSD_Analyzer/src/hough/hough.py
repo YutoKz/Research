@@ -1,3 +1,7 @@
+"""
+    二値化した CSD から、Hough変換により直線のパラメータを抽出する。
+"""
+
 import cv2
 import numpy as np
 import numpy.typing as npt
@@ -10,6 +14,8 @@ from utils import integrate_edges
 
 
 output_folder = "./data/output_hough"
+MethodType = Literal["slope_intercept", "slope"]
+
 
 # あとからdetect_line_segmentのみ改良していったので、こっちを使う場合は注意
 def detect_line(
@@ -17,6 +23,8 @@ def detect_line(
     edge_extraction: bool = True,
     hough_threshold: int = 20,
 ) -> None:
+    """ Hough変換( cv2.HoughLines() ) を用いた直線抽出。
+    """
     # フォルダ準備
     if os.path.exists("./data/output_hough") == False:
         os.mkdir("./data/output_hough")
@@ -26,7 +34,7 @@ def detect_line(
     rgb_image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     cv2.imwrite("./data/output_hough/original.png", image)
 
-    # ハフ変換による直線検出
+    # Hough変換による直線検出
     if edge_extraction:
         edges = cv2.Canny(image, 50, 100)
         cv2.imwrite("./data/output_hough/canny.png", edges)
@@ -70,6 +78,8 @@ def detect_line_segment(
     hough_minLineLength: int = 10,
     hough_maxLineGap: int = 2,
 ) -> None:
+    """ 一般化Hough変換( cv2.HoughLinesP() ) を用いた線分抽出。
+    """
     # フォルダ準備
     if os.path.exists("./data/output_hough"):
         shutil.rmtree("./data/output_hough")
@@ -83,7 +93,7 @@ def detect_line_segment(
     height, width = image.shape[:2]
     print(f"image size: ({height}, {width})")
 
-    # ハフ変換による直線検出
+    # Hough変換による直線検出
     if edge_extraction:
         edges = cv2.Canny(image, 50, 100)
         cv2.imwrite("./data/output_hough/canny.png", edges)
@@ -138,19 +148,20 @@ def detect_line_segment(
     df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
     df.sort_values(by="type").to_csv("./data/output_hough/line_parapeters.csv", index=True)
 
-
-
 def hough_transform(
     img,
     rho_res,
     theta_res
 ) -> npt.NDArray:
-    """ ハフ変換した結果を rho-theta 図で保存、2次元配列として返す。
+    """ Hough変換の結果を rho-theta 図で保存、2次元配列として返す。
     
     Args:
         img: 入力画像
         rho_res: rho 解像度 [px / px]
         theta_res: theta 解像度 [rad / px]
+
+    Returns:
+        npt.NDArray: Hough変換した結果。rho,thetaで表された直線の投票数を保存。(縦軸rho, 横軸theta)
     """
     # エッジ座標
     y, x = np.where(img)
@@ -181,33 +192,30 @@ def hough_transform(
 
     return hough_array
 
-
-
-MethodType = Literal["slope_intercept", "slope"]
-
-# CSD の性質を活用したハフ変換
 def hough_transform_CSD(
     method: MethodType,
     filepath: str, 
-    voltage_per_pixel: float = 1.0,
     threshold_vertical: int = 0,
     threshold_interdot: int = 0,
     threshold_horizontal: int = 0,
+    voltage_per_pixel: float = 1.0,
     rho_res: float = 0.5,
     theta_res: float = np.pi / 180,
 ) -> None:
-    """ 異なるtheta領域を個別の閾値で直線検出
+    """ CSD の性質を活用したHough変換。異なるtheta領域を個別の閾値で直線検出
 
     Args:
         method: モード制御
         filepath: 入力画像
 
-        voltage_per_pixel: 1pxあたりの電圧
-        
         threshold_vertical:                         縦          
         threshold_interdot:     直線検出用の閾値     ドット間     
         threshold_horizontal:                       横       
 
+        voltage_per_pixel: 1pxあたりの電圧
+
+        rho_res: rho 解像度 [px / px]
+        theta_res: theta 解像度 [rad / px]
     """
 
     # フォルダ準備
@@ -221,42 +229,17 @@ def hough_transform_CSD(
     cv2.imwrite(output_folder + "/original.png", img)
     height, width = img.shape[:2]
     img = np.array(img)
-    
-    # 縦軸：ρ, 横軸：θ　2次元配列
-    hough_array = hough_transform(img, rho_res, theta_res)
 
     # ρ-θ図を3つの範囲に分割
+    hough_array = hough_transform(img, rho_res, theta_res)    # 縦軸：ρ, 横軸：θ　2次元配列
+    hough_array_vertical, hough_array_interdot, hough_array_horizontal = _split_hough_array(hough_array)
+    
     theta_array = np.arange(hough_array.shape[1])
-    hough_tmp = np.copy(hough_array)
-    hough_tmp = np.split(hough_tmp, 8, axis=1)
-    theta_tmp = np.copy(theta_array)
-    theta_tmp = np.split(theta_tmp, 8)
+    theta_array_vertical, theta_array_interdot, theta_array_horizontal = _split_theta_array(theta_array)
 
-    hough_array_m180_m90 = np.hstack((hough_tmp[0], hough_tmp[1]))         
-    hough_array_m90_m45 =  hough_tmp[2]
-    hough_array_m45_0 =    hough_tmp[3]
-    hough_array_0_90 =     np.hstack((hough_tmp[4], hough_tmp[5]))
-    hough_array_90_135 =   hough_tmp[6]               
-    hough_array_135_180 =  hough_tmp[7]
-
-    theta_array_m180_m90 = np.hstack((theta_tmp[0], theta_tmp[1]))         
-    theta_array_m90_m45 =  theta_tmp[2]
-    theta_array_m45_0 =    theta_tmp[3]
-    theta_array_0_90 =     np.hstack((theta_tmp[4], theta_tmp[5]))
-    theta_array_90_135 =   theta_tmp[6]               
-    theta_array_135_180 =  theta_tmp[7]
-    
-    hough_array_vertical =   np.hstack((hough_array_m45_0, hough_array_135_180))
-    hough_array_interdot =   np.hstack((hough_array_m180_m90, hough_array_0_90))
-    hough_array_horizontal = np.hstack((hough_array_m90_m45, hough_array_90_135))
-
-    theta_array_vertical =   np.hstack((theta_array_m45_0, theta_array_135_180))
-    theta_array_interdot =   np.hstack((theta_array_m180_m90, theta_array_0_90))
-    theta_array_horizontal = np.hstack((theta_array_m90_m45, theta_array_90_135))
-    
     match method:
         case "slope_intercept":
-            # 目標: 3つのtheta領域それぞれに対し個別に通常のハフ変換による 直線(rho + theta) 抽出
+            # 目標: 3つのtheta領域それぞれに対し個別に通常のHough変換による 直線(rho + theta) 抽出
 
             os.mkdir("./data/output_hough/individual_line")
 
@@ -354,9 +337,9 @@ def hough_transform_CSD(
             print(f"|- horizontal:  {int(theta_max_horizontal*180/np.pi):4d} [degree]")
 
             lines_list = []
-            lines_list.append(["vertical",   1 / np.tan(theta_max_vertical)] )
-            lines_list.append(["interdot",   1 / np.tan(theta_max_interdot)]     )
-            lines_list.append(["horizontal", 1 / np.tan(theta_max_horizontal)]   )
+            lines_list.append(["vertical",   1 / np.tan(theta_max_vertical)    if np.tan(theta_max_vertical)!=0 else 0])
+            lines_list.append(["interdot",   1 / np.tan(theta_max_interdot)    if np.tan(theta_max_interdot)!=0 else 0])
+            lines_list.append(["horizontal", 1 / np.tan(theta_max_horizontal)  if np.tan(theta_max_horizontal)!=0 else 0])
             df = pd.DataFrame(lines_list, columns=["type", "slope"])
             df.sort_values(by="type").to_csv(output_folder + "/slope.csv", index=False)
 
@@ -378,11 +361,6 @@ def hough_transform_CSD(
                 theta_max_horizontal
             )
             cv2.imwrite(output_folder + "/detected_slope.png", output_img)
-
-
-
-
-
 
 
 def _detect_peak_coordinate(
@@ -443,7 +421,6 @@ def _calculate_theta_max(
     plt.savefig(output_folder + f"/check_gap{theta_gap}.png")
     plt.close()
     """
-    
     return global_index * theta_res - np.pi
 
 def _line_rho_theta(
@@ -462,7 +439,7 @@ def _line_rho_theta(
     x2 = width - 1
     if theta != 0 and theta != np.pi and theta != -np.pi:
         y1 = int(rho / np.sin(theta))
-        y2 = int(y1 - x2 / np.tan(theta))
+        y2 = int(y1 - x2 / np.tan(theta)) if np.cos(theta) != 0 else y1
         if theta < 0: 
             line_color = (0, 0, 255)
         elif 0 <= theta <= np.pi/2:
@@ -472,6 +449,40 @@ def _line_rho_theta(
         cv2.line(img, (x1, y1), (x2, y2), line_color, 1)
     else:
         cv2.line(img, (int(rho), 0), (int(rho), height-1), (0, 0, 255), 1)
+
+def _split_hough_array(hough_array):
+    hough_tmp = np.copy(hough_array)
+    hough_tmp = np.split(hough_tmp, 8, axis=1)
+
+    hough_array_m180_m90 = np.hstack((hough_tmp[0], hough_tmp[1]))         
+    hough_array_m90_m45 =  hough_tmp[2]
+    hough_array_m45_0 =    hough_tmp[3]
+    hough_array_0_90 =     np.hstack((hough_tmp[4], hough_tmp[5]))
+    hough_array_90_135 =   hough_tmp[6]               
+    hough_array_135_180 =  hough_tmp[7]
+    
+    hough_array_vertical =   np.hstack((hough_array_m45_0, hough_array_135_180))
+    hough_array_interdot =   np.hstack((hough_array_m180_m90, hough_array_0_90))
+    hough_array_horizontal = np.hstack((hough_array_m90_m45, hough_array_90_135))
+
+    return hough_array_vertical, hough_array_interdot, hough_array_horizontal
+
+def _split_theta_array(theta_array):
+    theta_tmp = np.copy(theta_array)
+    theta_tmp = np.split(theta_tmp, 8)
+
+    theta_array_m180_m90 = np.hstack((theta_tmp[0], theta_tmp[1]))         
+    theta_array_m90_m45 =  theta_tmp[2]
+    theta_array_m45_0 =    theta_tmp[3]
+    theta_array_0_90 =     np.hstack((theta_tmp[4], theta_tmp[5]))
+    theta_array_90_135 =   theta_tmp[6]               
+    theta_array_135_180 =  theta_tmp[7]
+    
+    theta_array_vertical =   np.hstack((theta_array_m45_0, theta_array_135_180))
+    theta_array_interdot =   np.hstack((theta_array_m180_m90, theta_array_0_90))
+    theta_array_horizontal = np.hstack((theta_array_m90_m45, theta_array_90_135))
+
+    return theta_array_vertical, theta_array_interdot, theta_array_horizontal
 
 
 
@@ -487,9 +498,9 @@ if __name__ == "__main__":
     hough_transform_CSD(
         method="slope",
         filepath=filepath,
-        threshold_vertical=23,
-        threshold_interdot=23,
-        threshold_horizontal=23,
+        threshold_vertical=15,
+        threshold_interdot=15,
+        threshold_horizontal=18,
     )
     """
     
