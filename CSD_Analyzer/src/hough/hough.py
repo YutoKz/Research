@@ -134,10 +134,6 @@ def detect_line_segment(
     df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
     df.sort_values(by="type").to_csv("./data/output_hough/line_parapeters.csv", index=True)
 
-# CSDの特徴を考慮し、傾きの範囲を3分割して個別にハフ変換するために実装
-# 理想的には、異なる3つのtheta区間に一つずつ目的の傾きが存在するため、
-# それぞれ異なる閾値を設定できるようにして確実に検出できるようにすることには、
-# 投票数に大きな違いがあっても検出できるなど、一定の効果があるはずだが。。
 def detect_peak_coordinate(
     hough_array: npt.NDArray,
     threshold: int,
