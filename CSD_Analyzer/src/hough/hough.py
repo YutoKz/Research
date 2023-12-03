@@ -148,6 +148,8 @@ def hough_transform(
     threshold_vertical: int = 0,
     threshold_interdot: int = 0,
     threshold_horizontal: int = 0,
+    rho_res: float = 0.5,
+    theta_res: float = np.pi / 180,
 ) -> None:
     """ 異なるtheta領域を個別の閾値で直線検出
 
@@ -162,11 +164,8 @@ def hough_transform(
         threshold_horizontal:                       横       
 
     """
-    rho_res: float = 0.5
-    theta_res: float = np.pi / 180
 
     # フォルダ準備
-    #output_folder = "./data/output_hough"
     if os.path.exists(output_folder):
         shutil.rmtree(output_folder)
     os.mkdir(output_folder)
@@ -184,8 +183,8 @@ def hough_transform(
     # 各θごとのヒストグラムを保存
     hough = []
  
-    #rhoの最大値は画像の対角
-    rho_max = np.ceil(np.sqrt(img.shape[0] * img.shape[0] + img.shape[1] * img.shape[1]) / rho_res)
+    # rhoの最大値は画像の対角
+    rho_max = np.ceil(np.sqrt(height * height + width * width) / rho_res)
     rng = np.round(np.pi / theta_res)
  
     for i in np.arange(-rng, rng):
@@ -197,21 +196,49 @@ def hough_transform(
     hough_array = np.array(hough).T  # 転置して各列が異なる角度に対応
     
     # -pi ~ pi のρ-θ図を作成
-    plt.imshow(hough_array, cmap='viridis', extent=[-rng, rng, 0, rho_max], aspect='auto', origin='lower')
+    plt.imshow(hough_array, cmap='viridis', extent=[-180, 180, 0, rho_max*rho_res], aspect='auto', origin='lower')
     plt.colorbar(label='Votes')
     plt.title('Hough Transform in rho - theta Space')
-    plt.xlabel('Theta (degree)')
-    plt.ylabel('Rho')
+    plt.xlabel('Theta [degree]')
+    plt.ylabel('Rho [pixel]')
     plt.savefig(output_folder + "/rho_theta.png")
     plt.close()
     
+
+
+
+
+
     # ρ-θ図を3つの範囲に分割
-    tmp = np.copy(hough_array)
-    tmp = np.split(tmp, 2, axis=1)
-    hough_array_negative = tmp[0]                           # vertical
-    hough_array_0_90 = np.split(tmp[1], 2, axis=1)[0]       # interdot
-    hough_array_90_180 = np.split(tmp[1], 2, axis=1)[1]     # horizontal
+    theta_array = np.arange(hough_array.shape[1])
+    hough_tmp = np.copy(hough_array)
+    hough_tmp = np.split(hough_tmp, 8, axis=1)
+    theta_tmp = np.copy(theta_array)
+    theta_tmp = np.split(theta_tmp, 8)
+
+    hough_array_m180_m90 = np.hstack((hough_tmp[0], hough_tmp[1]))         
+    hough_array_m90_m45 =  hough_tmp[2]
+    hough_array_m45_0 =    hough_tmp[3]
+    hough_array_0_90 =     np.hstack((hough_tmp[4], hough_tmp[5]))
+    hough_array_90_135 =   hough_tmp[6]               
+    hough_array_135_180 =  hough_tmp[7]
+
+    theta_array_m180_m90 = np.hstack((theta_tmp[0], theta_tmp[1]))         
+    theta_array_m90_m45 =  theta_tmp[2]
+    theta_array_m45_0 =    theta_tmp[3]
+    theta_array_0_90 =     np.hstack((theta_tmp[4], theta_tmp[5]))
+    theta_array_90_135 =   theta_tmp[6]               
+    theta_array_135_180 =  theta_tmp[7]
     
+    hough_array_vertical =   np.hstack((hough_array_m45_0, hough_array_135_180))
+    hough_array_interdot =   np.hstack((hough_array_m180_m90, hough_array_0_90))
+    hough_array_horizontal = np.hstack((hough_array_m90_m45, hough_array_90_135))
+
+    theta_array_vertical =   np.hstack((theta_array_m45_0, theta_array_135_180))
+    theta_array_interdot =   np.hstack((theta_array_m180_m90, theta_array_0_90))
+    theta_array_horizontal = np.hstack((theta_array_m90_m45, theta_array_90_135))
+    
+
     match method:
         case "slope_intercept":
             # 目標: 3つのtheta領域それぞれに対し個別に通常のハフ変換による 直線(rho + theta) 抽出
@@ -219,10 +246,25 @@ def hough_transform(
             os.mkdir("./data/output_hough/individual_line")
 
             # 各領域で異なる閾値のもと、投票数が極大値をとる座標を取得
-            peak_negative = _detect_peak_coordinate(hough_array_negative, threshold_vertical, 0)
-            peak_0_90 = _detect_peak_coordinate(hough_array_0_90, threshold_interdot, int(rng))
-            peak_90_180 = _detect_peak_coordinate(hough_array_90_180, threshold_horizontal, int(rng * 3 / 2))
-            peak = np.hstack((peak_negative, peak_0_90, peak_90_180))
+            peak_vertical = _detect_peak_coordinate(
+                hough_array_vertical, 
+                theta_array_vertical,
+                threshold_vertical,
+                #0
+            )
+            peak_interdot = _detect_peak_coordinate(
+                hough_array_interdot, 
+                theta_array_interdot,
+                threshold_interdot, 
+                #int(rng)
+            )
+            peak_horizontal = _detect_peak_coordinate(
+                hough_array_horizontal,
+                theta_array_horizontal, 
+                threshold_horizontal, 
+                #int(rng * 3 / 2)
+            )
+            peak = np.hstack((peak_vertical, peak_interdot, peak_horizontal))
 
             # 得られた直線を元の画像に描画
             print(f"Total: {len(peak[0])}")
@@ -234,7 +276,7 @@ def hough_transform(
             for i in range(peak.shape[1]):
                 rho = peak[0, i] * rho_res
                 theta = peak[1, i] * theta_res - np.pi
-                
+
                 intercept = height - 1 - int(rho / np.sin(theta))
                 slope = -1 / np.tan(theta)
 
@@ -263,7 +305,7 @@ def hough_transform(
                     rho,
                     theta,
                 )
-            print(f"|- Horizontal: {num_of_horizontal_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Vertical:   {num_of_vertical_lines}")
+            print(f"|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Horizontal: {num_of_horizontal_lines}")
 
             cv2.imwrite(output_folder + "/detected_lines.png", all_lines_img)
             df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
@@ -331,22 +373,33 @@ def hough_transform(
 
 def _detect_peak_coordinate(
     hough_array: npt.NDArray,
+    theta_array: npt.NDArray,
     threshold: int,
-    theta_gap: int,
+    #theta_gap: int,
 ) -> npt.NDArray:
+    """
+    出力：
+        座標 [ [rho1, rho2, ...], [theta1, theta2, ...] ]
+        ただし、
+        theta の座標は np.arange(-rng, rng) の値 (-180...0...179) 
+    """
     # 極大値を検出
     # cv2.HoughLinesを再現した以下のサイトを参考にした。
     # https://campkougaku.com/2021/08/17/hough3/#toc2
     thresholded_hough_array = np.copy(hough_array)
     thresholded_hough_array[thresholded_hough_array < threshold] = 0
  
-    peak = (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[0:-2, 1:-1]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[2:, 1:-1]) * \
+    peak_local = (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[0:-2, 1:-1]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[2:, 1:-1]) * \
            (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 0:-2]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 2:]) * \
            (thresholded_hough_array[1:-1, 1:-1] > 0)
-    peak = np.array(np.where(peak)) + 1
-    peak[1, :] += theta_gap
+    peak_local = np.array(np.where(peak_local)) + 1  # peak: [ [rho1, rho2, ...], [theta1, theta2, ...] ]   
+    peak_global = np.copy(peak_local)
+    for i, t in enumerate(peak_local[1]):
+        peak_global[1, i] = theta_array[t]
+    #peak[1, :] += theta_gap
+    print(peak_global)
     
-    return peak
+    return peak_global
 
 def _calculate_theta_max(
     hough_array: npt.NDArray,
@@ -416,9 +469,9 @@ if __name__ == "__main__":
     hough_transform(
         method="slope_intercept",
         filepath=filepath,
-        threshold_vertical=20,
-        threshold_interdot=20,
-        threshold_horizontal=20,
+        threshold_vertical=23,
+        threshold_interdot=23,
+        threshold_horizontal=23,
     )
     """
     
