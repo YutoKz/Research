@@ -152,16 +152,15 @@ def hough_transform(
     """ 異なるtheta領域を個別の閾値で直線検出
 
     Args:
-        filepath: 
-        rho_res: ρの分解能
-        theta_res: θの分解能 (rad)
+        method: モード制御
+        filepath: 入力画像
+
+        voltage_per_pixel: 1pxあたりの電圧
         
         threshold_vertical:                         縦          
         threshold_interdot:     直線検出用の閾値     ドット間     
         threshold_horizontal:                       横       
 
-
-    
     """
     rho_res: float = 0.5
     theta_res: float = np.pi / 180
