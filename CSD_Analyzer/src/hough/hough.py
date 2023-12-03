@@ -204,11 +204,6 @@ def hough_transform(
     plt.savefig(output_folder + "/rho_theta.png")
     plt.close()
     
-
-
-
-
-
     # ρ-θ図を3つの範囲に分割
     theta_array = np.arange(hough_array.shape[1])
     hough_tmp = np.copy(hough_array)
@@ -238,7 +233,6 @@ def hough_transform(
     theta_array_interdot =   np.hstack((theta_array_m180_m90, theta_array_0_90))
     theta_array_horizontal = np.hstack((theta_array_m90_m45, theta_array_90_135))
     
-
     match method:
         case "slope_intercept":
             # 目標: 3つのtheta領域それぞれに対し個別に通常のハフ変換による 直線(rho + theta) 抽出
@@ -300,11 +294,8 @@ def hough_transform(
                     _line_rho_theta(one_line_image, rho, theta)
                     cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
                 
-                _line_rho_theta(
-                    all_lines_img,
-                    rho,
-                    theta,
-                )
+                _line_rho_theta(all_lines_img, rho, theta)
+
             print(f"|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Horizontal: {num_of_horizontal_lines}")
 
             cv2.imwrite(output_folder + "/detected_lines.png", all_lines_img)
@@ -315,34 +306,36 @@ def hough_transform(
             # 目標: 傾きを３種類求める
 
             # 異なる閾値のもと、各領域ごとに傾きの最頻値をを取得
-            theta_max_negative = _calculate_theta_max(
-                hough_array_negative, 
+            theta_max_vertical = _calculate_theta_max(
+                hough_array_vertical,
+                theta_array_vertical, 
                 threshold_vertical, 
                 theta_res,
-                0,
+                #0,
             )
-            theta_max_0_90 = _calculate_theta_max(
-                hough_array_0_90, 
+            theta_max_interdot = _calculate_theta_max(
+                hough_array_interdot, 
+                theta_array_interdot,
                 threshold_interdot, 
                 theta_res,
-                int(rng),
+                #int(rng),
             )
-            theta_max_90_180 = _calculate_theta_max(
-                hough_array_90_180, 
+            theta_max_horizontal = _calculate_theta_max(
+                hough_array_horizontal,
+                theta_array_horizontal, 
                 threshold_horizontal, 
                 theta_res,
-                int(rng * 3 / 2),
+                #int(rng * 3 / 2),
             )
-
             print("Detected Theta")
-            print(f"|- vertical:    {int(theta_max_negative*180/np.pi):4d} [degree]")
-            print(f"|- interdot:    {int(theta_max_0_90*180/np.pi):4d} [degree]")
-            print(f"|- horizontal:  {int(theta_max_90_180*180/np.pi):4d} [degree]")
+            print(f"|- vertical:    {int(theta_max_vertical*180/np.pi):4d} [degree]")
+            print(f"|- interdot:    {int(theta_max_interdot*180/np.pi):4d} [degree]")
+            print(f"|- horizontal:  {int(theta_max_horizontal*180/np.pi):4d} [degree]")
 
             lines_list = []
-            lines_list.append(["vertical",   np.tan(theta_max_negative)] )
-            lines_list.append(["interdot",   np.tan(theta_max_0_90)]     )
-            lines_list.append(["horizontal", np.tan(theta_max_90_180)]   )
+            lines_list.append(["vertical",   1 / np.tan(theta_max_vertical)] )
+            lines_list.append(["interdot",   1 / np.tan(theta_max_interdot)]     )
+            lines_list.append(["horizontal", 1 / np.tan(theta_max_horizontal)]   )
             df = pd.DataFrame(lines_list, columns=["type", "slope"])
             df.sort_values(by="type").to_csv(output_folder + "/slope.csv", index=False)
 
@@ -350,18 +343,18 @@ def hough_transform(
             output_img = np.copy(rgb_img)
             _line_rho_theta(
                 output_img, 
-                int(width / 2 * np.cos(theta_max_negative) + height / 2 * np.sin(theta_max_negative)),
-                theta_max_negative
+                int(width / 2 * np.cos(theta_max_vertical) + height / 2 * np.sin(theta_max_vertical)),
+                theta_max_vertical
             )
             _line_rho_theta(
                 output_img,
-                int(width / 2 * np.cos(theta_max_0_90) + height / 2 * np.sin(theta_max_0_90)),
-                theta_max_0_90
+                int(width / 2 * np.cos(theta_max_interdot) + height / 2 * np.sin(theta_max_interdot)),
+                theta_max_interdot
             )
             _line_rho_theta(
                 output_img,
-                int(width / 2 * np.cos(theta_max_90_180) + height / 2 * np.sin(theta_max_90_180)),
-                theta_max_90_180
+                int(width / 2 * np.cos(theta_max_horizontal) + height / 2 * np.sin(theta_max_horizontal)),
+                theta_max_horizontal
             )
             cv2.imwrite(output_folder + "/detected_slope.png", output_img)
 
@@ -403,9 +396,10 @@ def _detect_peak_coordinate(
 
 def _calculate_theta_max(
     hough_array: npt.NDArray,
+    theta_array: npt.NDArray,
     threshold: int,
     theta_res: float,
-    theta_gap: int,
+    #theta_gap: int,
 ) -> float:
     """
     
@@ -415,6 +409,9 @@ def _calculate_theta_max(
     thresholded_hough_array = np.copy(hough_array)
     thresholded_hough_array[thresholded_hough_array < threshold] = 0
     thresholded_hough_array = np.sum(thresholded_hough_array, axis=0)
+
+    local_index = np.argmax(thresholded_hough_array)
+    global_index = theta_array[local_index]
 
     """
     # 確認用 (普段はコメントアウト)
@@ -426,7 +423,7 @@ def _calculate_theta_max(
     plt.close()
     """
     
-    return (np.argmax(thresholded_hough_array) + theta_gap) * theta_res - np.pi
+    return global_index * theta_res - np.pi
 
 def _line_rho_theta(
     img,
@@ -467,7 +464,7 @@ if __name__ == "__main__":
 
    
     hough_transform(
-        method="slope_intercept",
+        method="slope",
         filepath=filepath,
         threshold_vertical=23,
         threshold_interdot=23,
