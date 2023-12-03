@@ -4,11 +4,14 @@ import numpy.typing as npt
 import pandas as pd
 import matplotlib.pyplot as plt
 import os, shutil
+from typing import Literal
 
 from utils import integrate_edges
 
-# あとからdetect_line_segmentのみ改良していったので、こっちを使う場合は注意
 
+output_folder = "./data/output_hough"
+
+# あとからdetect_line_segmentのみ改良していったので、こっちを使う場合は注意
 def detect_line(
     filepath: str,
     edge_extraction: bool = True,
@@ -135,47 +138,44 @@ def detect_line_segment(
     df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
     df.sort_values(by="type").to_csv("./data/output_hough/line_parapeters.csv", index=True)
 
-def detect_peak_coordinate(
-    hough_array: npt.NDArray,
-    threshold: int,
-    theta_gap: int,
-) -> npt.NDArray:
-    # 極大値を検出
-    # cv2.HoughLinesを再現した以下のサイトを参考にした。
-    # https://campkougaku.com/2021/08/17/hough3/#toc2
-    hough_array[hough_array < threshold] = 0
- 
-    peak = (hough_array[1:-1, 1:-1] >= hough_array[0:-2, 1:-1]) * (hough_array[1:-1, 1:-1] >= hough_array[2:, 1:-1]) * \
-           (hough_array[1:-1, 1:-1] >= hough_array[1:-1, 0:-2]) * (hough_array[1:-1, 1:-1] >= hough_array[1:-1, 2:]) * \
-           (hough_array[1:-1, 1:-1] > 0)
-    peak = np.array(np.where(peak)) + 1
-    peak[1, :] += theta_gap
-    
-    return peak
+MethodType = Literal["slope_intercept", "slope"]
 
+# CSD の性質を活用したハフ変換
 def hough_transform(
+    method: MethodType,
     filepath: str, 
-    rho_res: float, 
-    theta_res: float = np.pi/180,
+    voltage_per_pixel: float = 1.0,
     threshold_vertical: int = 0,
     threshold_interdot: int = 0,
     threshold_horizontal: int = 0,
 ) -> None:
-    """
+    """ 異なるtheta領域を個別の閾値で直線検出
+
     Args:
         filepath: 
         rho_res: ρの分解能
         theta_res: θの分解能 (rad)
+        
+        threshold_vertical:                         縦          
+        threshold_interdot:     直線検出用の閾値     ドット間     
+        threshold_horizontal:                       横       
+
+
+    
     """
+    rho_res: float = 0.5
+    theta_res: float = np.pi / 180
+
     # フォルダ準備
-    if os.path.exists("./data/output_hough"):
-        shutil.rmtree("./data/output_hough")
-    os.mkdir("./data/output_hough")
+    #output_folder = "./data/output_hough"
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
+    os.mkdir(output_folder)
 
     # 画像の読み込み
     img = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
     rgb_img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    cv2.imwrite("./data/output_hough/original.png", img)
+    cv2.imwrite(output_folder + "/original.png", img)
     height, width = img.shape[:2]
     img = np.array(img)
     
@@ -199,13 +199,12 @@ def hough_transform(
     
     # -pi ~ pi のρ-θ図を作成
     plt.imshow(hough_array, cmap='viridis', extent=[-rng, rng, 0, rho_max], aspect='auto', origin='lower')
-    plt.colorbar(label='Frequency')
+    plt.colorbar(label='Votes')
     plt.title('Hough Transform in rho - theta Space')
-    plt.xlabel('Theta (radians)')
+    plt.xlabel('Theta (degree)')
     plt.ylabel('Rho')
-    plt.savefig("./data/output_hough/rho_theta.png")
+    plt.savefig(output_folder + "/rho_theta.png")
     plt.close()
-    
     
     # ρ-θ図を3つの範囲に分割
     tmp = np.copy(hough_array)
@@ -213,50 +212,214 @@ def hough_transform(
     hough_array_negative = tmp[0]                           # vertical
     hough_array_0_90 = np.split(tmp[1], 2, axis=1)[0]       # interdot
     hough_array_90_180 = np.split(tmp[1], 2, axis=1)[1]     # horizontal
+    
+    match method:
+        case "slope_intercept":
+            # 目標: 3つのtheta領域それぞれに対し個別に通常のハフ変換による 直線(rho + theta) 抽出
 
-    # 各領域で異なる閾値のもと投票数が極大値をとる座標を取得
-    peak_negative = detect_peak_coordinate(hough_array_negative, threshold_vertical, 0)
-    peak_0_90 = detect_peak_coordinate(hough_array_0_90, threshold_interdot, int(rng))
-    peak_90_180 = detect_peak_coordinate(hough_array_90_180, threshold_horizontal, int(rng * 3 / 2))
-    peak = np.hstack((peak_negative, peak_0_90, peak_90_180))
+            os.mkdir("./data/output_hough/individual_line")
 
-    # 得られた直線を元の画像に描画
+            # 各領域で異なる閾値のもと、投票数が極大値をとる座標を取得
+            peak_negative = _detect_peak_coordinate(hough_array_negative, threshold_vertical, 0)
+            peak_0_90 = _detect_peak_coordinate(hough_array_0_90, threshold_interdot, int(rng))
+            peak_90_180 = _detect_peak_coordinate(hough_array_90_180, threshold_horizontal, int(rng * 3 / 2))
+            peak = np.hstack((peak_negative, peak_0_90, peak_90_180))
+
+            # 得られた直線を元の画像に描画
+            print(f"Total: {len(peak[0])}")
+            num_of_horizontal_lines = 0
+            num_of_vertical_lines = 0
+            num_of_interdot_lines = 0
+            lines_list = []
+            all_lines_img = np.copy(rgb_img)
+            for i in range(peak.shape[1]):
+                rho = peak[0, i] * rho_res
+                theta = peak[1, i] * theta_res - np.pi
+                
+                intercept = height - 1 - int(rho / np.sin(theta))
+                slope = -1 / np.tan(theta)
+
+                one_line_image = np.copy(rgb_img)
+                if  slope < 0:
+                    # interdot
+                    num_of_interdot_lines += 1
+                    lines_list.append(["interdot", -1 * slope, intercept * voltage_per_pixel])
+                    _line_rho_theta(one_line_image, rho, theta)
+                    cv2.imwrite(output_folder + f"/individual_line/interdot_{i}.png", one_line_image)
+                elif slope < 1:
+                    # horizontal
+                    num_of_horizontal_lines += 1
+                    lines_list.append(["horizontal", -1 * slope, intercept * voltage_per_pixel])
+                    _line_rho_theta(one_line_image, rho, theta)
+                    cv2.imwrite(output_folder + f"/individual_line/horizontal_{i}.png", one_line_image)
+                else:
+                    # vertical
+                    num_of_vertical_lines += 1 
+                    lines_list.append(["vertical", -1 * slope, intercept * voltage_per_pixel])
+                    _line_rho_theta(one_line_image, rho, theta)
+                    cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
+                
+                _line_rho_theta(
+                    all_lines_img,
+                    rho,
+                    theta,
+                )
+            print(f"|- Horizontal: {num_of_horizontal_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Vertical:   {num_of_vertical_lines}")
+
+            cv2.imwrite(output_folder + "/detected_lines.png", all_lines_img)
+            df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
+            df.sort_values(by="type").to_csv(output_folder + "/line_parapeters.csv", index=True)
+
+        case "slope":
+            # 目標: 傾きを３種類求める
+
+            # 異なる閾値のもと、各領域ごとに傾きの最頻値をを取得
+            theta_max_negative = _calculate_theta_max(
+                hough_array_negative, 
+                threshold_vertical, 
+                theta_res,
+                0,
+            )
+            theta_max_0_90 = _calculate_theta_max(
+                hough_array_0_90, 
+                threshold_interdot, 
+                theta_res,
+                int(rng),
+            )
+            theta_max_90_180 = _calculate_theta_max(
+                hough_array_90_180, 
+                threshold_horizontal, 
+                theta_res,
+                int(rng * 3 / 2),
+            )
+
+            print("Detected Theta")
+            print(f"|- vertical:    {int(theta_max_negative*180/np.pi):4d} [degree]")
+            print(f"|- interdot:    {int(theta_max_0_90*180/np.pi):4d} [degree]")
+            print(f"|- horizontal:  {int(theta_max_90_180*180/np.pi):4d} [degree]")
+
+            lines_list = []
+            lines_list.append(["vertical",   np.tan(theta_max_negative)] )
+            lines_list.append(["interdot",   np.tan(theta_max_0_90)]     )
+            lines_list.append(["horizontal", np.tan(theta_max_90_180)]   )
+            df = pd.DataFrame(lines_list, columns=["type", "slope"])
+            df.sort_values(by="type").to_csv(output_folder + "/slope.csv", index=False)
+
+            # 傾きを描画
+            output_img = np.copy(rgb_img)
+            _line_rho_theta(
+                output_img, 
+                int(width / 2 * np.cos(theta_max_negative) + height / 2 * np.sin(theta_max_negative)),
+                theta_max_negative
+            )
+            _line_rho_theta(
+                output_img,
+                int(width / 2 * np.cos(theta_max_0_90) + height / 2 * np.sin(theta_max_0_90)),
+                theta_max_0_90
+            )
+            _line_rho_theta(
+                output_img,
+                int(width / 2 * np.cos(theta_max_90_180) + height / 2 * np.sin(theta_max_90_180)),
+                theta_max_90_180
+            )
+            cv2.imwrite(output_folder + "/detected_slope.png", output_img)
+
+
+
+
+
+
+
+def _detect_peak_coordinate(
+    hough_array: npt.NDArray,
+    threshold: int,
+    theta_gap: int,
+) -> npt.NDArray:
+    # 極大値を検出
+    # cv2.HoughLinesを再現した以下のサイトを参考にした。
+    # https://campkougaku.com/2021/08/17/hough3/#toc2
+    thresholded_hough_array = np.copy(hough_array)
+    thresholded_hough_array[thresholded_hough_array < threshold] = 0
+ 
+    peak = (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[0:-2, 1:-1]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[2:, 1:-1]) * \
+           (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 0:-2]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 2:]) * \
+           (thresholded_hough_array[1:-1, 1:-1] > 0)
+    peak = np.array(np.where(peak)) + 1
+    peak[1, :] += theta_gap
+    
+    return peak
+
+def _calculate_theta_max(
+    hough_array: npt.NDArray,
+    threshold: int,
+    theta_res: float,
+    theta_gap: int,
+) -> float:
+    """
+    
+    出力:
+        rad
+    """
+    thresholded_hough_array = np.copy(hough_array)
+    thresholded_hough_array[thresholded_hough_array < threshold] = 0
+    thresholded_hough_array = np.sum(thresholded_hough_array, axis=0)
+
+    """
+    # 確認用 (普段はコメントアウト)
+    indices = np.arange(len(thresholded_hough_array))
+    indices += theta_gap - 180
+    plt.plot(indices, thresholded_hough_array, marker='o', linestyle='-')
+    plt.title("Theta Histogram")
+    plt.savefig(output_folder + f"/check_gap{theta_gap}.png")
+    plt.close()
+    """
+    
+    return (np.argmax(thresholded_hough_array) + theta_gap) * theta_res - np.pi
+
+def _line_rho_theta(
+    img,
+    rho,
+    theta,
+):
+    """
+    Args:
+        img:
+        rho: 
+        theta: [rad]
+    """
+    height, width = img.shape[:2]
     x1 = 0
     x2 = width - 1
-    for i in range(peak.shape[1]):
-        rho = peak[0, i] * rho_res
-        theta = peak[1, i] * theta_res - np.pi
-        if theta != 0 and theta != np.pi and theta != -np.pi:
-            y1 = int(rho / np.sin(theta))
-            y2 = int(y1 - x2 / np.tan(theta))
-            if theta < 0: 
-                line_color = (0, 0, 255)
-            elif 0 <= theta <= np.pi/2:
-                line_color = (255, 0, 0)
-            else:
-                line_color = (0, 255, 0) 
-            cv2.line(rgb_img, (x1, y1), (x2, y2), line_color, 1)
+    if theta != 0 and theta != np.pi and theta != -np.pi:
+        y1 = int(rho / np.sin(theta))
+        y2 = int(y1 - x2 / np.tan(theta))
+        if theta < 0: 
+            line_color = (0, 0, 255)
+        elif 0 <= theta <= np.pi/2:
+            line_color = (255, 0, 0)
         else:
-            cv2.line(rgb_img, (int(rho), 0), (int(rho), height-1), (0, 0, 255), 1)
-        
-    cv2.imwrite("./data/output_hough/hough_transform.png", rgb_img)
+            line_color = (0, 255, 0) 
+        cv2.line(img, (x1, y1), (x2, y2), line_color, 1)
+    else:
+        cv2.line(img, (int(rho), 0), (int(rho), height-1), (0, 0, 255), 1)
+
+
 
 
 if __name__ == "__main__":
 
-    """
+    
     filepath_line = "./data/output_train_simu/result/6_class1.png"
     filepath_triangle = "./data/output_train_simu/result/6_class2.png"
     filepath = integrate_edges(filepath_line, filepath_triangle)
 
    
     hough_transform(
+        method="slope_intercept",
         filepath=filepath,
-        rho_res=0.5,
-        theta_res=np.pi/180,
-        threshold_vertical=25,
-        threshold_interdot=25,
-        threshold_horizontal=25,
+        threshold_vertical=20,
+        threshold_interdot=20,
+        threshold_horizontal=20,
     )
     """
     
@@ -270,5 +433,5 @@ if __name__ == "__main__":
         hough_minLineLength=3,     
         hough_maxLineGap=3              
     )
-    
+    """
     
