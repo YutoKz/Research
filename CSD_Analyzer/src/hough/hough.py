@@ -362,6 +362,11 @@ def hough_transform_CSD(
             )
             cv2.imwrite(output_folder + "/detected_slope.png", output_img)
 
+def generalized_hough_transform(
+    
+):
+    pass
+
 
 def _detect_peak_coordinate(
     hough_array: npt.NDArray,
