@@ -2,11 +2,14 @@
 import os
 import shutil
 import numpy as np
+import pandas as pd
 from simulation.double_dot import ClassicDoubleQuantumDot
 from simulation.utils import SimRange
 import random
 
 import cv2
+
+output_folder = "./output_data"
 
 def create_dataset() -> None:
     """ 学習データセットを用意する関数.
@@ -30,9 +33,11 @@ def create_dataset() -> None:
     range_v1 = SimRange(0, 10, 0.1)
 
     # number of training data
-    num_pattern = 500
+    num_pattern = 5
 
     random.seed(0)
+
+    parameter_list = []
 
     for i in range(num_pattern):
         if i % 100 == 0:
@@ -55,13 +60,23 @@ def create_dataset() -> None:
             # CSD parameter 
             #thickness = 0.1
             width = 2
-            intensity_background = 0.45,
-            intensity_line = 0.55,
-            intensity_triangle = 0.65,
+            intensity_background = 0.45
+            intensity_line = 0.55
+            intensity_triangle = 0.65
             salt_prob = 0.0
             pepper_prob = 0.0
             random_prob = 0.0
             gaussian = 2.0
+
+            parameter_list.append([
+                                3*i+j,
+                                c_0, c_1, c_01, c_gate0_0, c_gate0_1, c_gate1_0,c_gate1_1, e, v_s,
+                                width, 
+                                intensity_background, intensity_line, intensity_triangle, 
+                                salt_prob, pepper_prob, random_prob, 
+                                gaussian,   
+                            ]
+            )
 
             # DQD
             dqd = ClassicDoubleQuantumDot(
@@ -90,18 +105,32 @@ def create_dataset() -> None:
                 gaussian=gaussian,
             )
 
-            # 注意！　逆三角形実装まで、一時的にnp.flip() ⇒ np.rot90()に変更中
+            
 
+            # 注意！　逆三角形実装まで、一時的にnp.flip() ⇒ np.rot90()に変更中
             # original CSD
             label_csd_gray = label_csd * 100
             cv2.imwrite(f"./output_data/label/{3*i+j}.png", np.rot90(label_csd)) #np.flip(label_csd, axis=0)
             cv2.imwrite(f"./output_data/label/{3*i+j}_gray.png", np.rot90(label_csd_gray)) #np.flip(label_csd_gray, axis=0)
-
             # noisy CSD
             noisy_csd_gray = noisy_csd * 255
             cv2.imwrite(f"./output_data/noisy/{3*i+j}.png", np.rot90(noisy_csd)) #np.flip(noisy_csd, axis=0)
             cv2.imwrite(f"./output_data/noisy/{3*i+j}_gray.png", np.rot90(noisy_csd_gray)) #np.flip(noisy_csd_gray, axis=0)
-
+            
+    df = pd.DataFrame(
+        parameter_list, 
+        columns=[
+            "index", 
+            "c_0", "c_1", "c_01", "c_gate0_0", "c_gate0_1", "c_gate1_0","c_gate1_1", "e", "v_s",
+            "width", 
+            "intensity_background", "intensity_line", "intensity_triangle", 
+            "salt_prob", "pepper_prob", "random_prob", 
+            "gaussian", 
+        ]
+    )
+    df.sort_values(by="index").to_csv(output_folder + "/parameters.csv", index=False)
+            
+            
 if __name__ == "__main__":
     create_dataset()
 
