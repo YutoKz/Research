@@ -16,14 +16,14 @@ def create_dataset() -> None:
     
     """
     # make directories
-    if os.path.exists("./output_data/noisy"):
-        shutil.rmtree("./output_data/noisy")
+    if os.path.exists(output_folder + "/noisy"):
+        shutil.rmtree(output_folder + "/noisy")
 
-    if os.path.exists("./output_data/label"):
-        shutil.rmtree("./output_data/label")
+    if os.path.exists(output_folder + "/label"):
+        shutil.rmtree(output_folder + "/label")
     
-    os.mkdir("./output_data/noisy")
-    os.mkdir("./output_data/label")
+    os.mkdir(output_folder + "/noisy")
+    os.mkdir(output_folder + "/label")
 
     # Attention: need to be fixed!
     # range of v0 / v1
@@ -110,12 +110,12 @@ def create_dataset() -> None:
             # 注意！　逆三角形実装まで、一時的にnp.flip() ⇒ np.rot90()に変更中
             # original CSD
             label_csd_gray = label_csd * 100
-            cv2.imwrite(f"./output_data/label/{3*i+j}.png", np.rot90(label_csd)) #np.flip(label_csd, axis=0)
-            cv2.imwrite(f"./output_data/label/{3*i+j}_gray.png", np.rot90(label_csd_gray)) #np.flip(label_csd_gray, axis=0)
+            cv2.imwrite(output_folder + f"/label/{3*i+j}.png", np.rot90(label_csd)) #np.flip(label_csd, axis=0)
+            cv2.imwrite(output_folder + f"/label/{3*i+j}_gray.png", np.rot90(label_csd_gray)) #np.flip(label_csd_gray, axis=0)
             # noisy CSD
             noisy_csd_gray = noisy_csd * 255
-            cv2.imwrite(f"./output_data/noisy/{3*i+j}.png", np.rot90(noisy_csd)) #np.flip(noisy_csd, axis=0)
-            cv2.imwrite(f"./output_data/noisy/{3*i+j}_gray.png", np.rot90(noisy_csd_gray)) #np.flip(noisy_csd_gray, axis=0)
+            cv2.imwrite(output_folder + f"/noisy/{3*i+j}.png", np.rot90(noisy_csd)) #np.flip(noisy_csd, axis=0)
+            cv2.imwrite(output_folder + f"/noisy/{3*i+j}_gray.png", np.rot90(noisy_csd_gray)) #np.flip(noisy_csd_gray, axis=0)
             
     df = pd.DataFrame(
         parameter_list, 
