@@ -2,6 +2,7 @@
 *.png
 *.pth
 *.csv
+*.npy
 detail.txt
 
 
