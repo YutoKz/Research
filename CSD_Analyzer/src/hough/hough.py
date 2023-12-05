@@ -26,18 +26,18 @@ def detect_line(
     """ Hough変換( cv2.HoughLines() ) を用いた直線抽出。
     """
     # フォルダ準備
-    if os.path.exists("./data/output_hough") == False:
-        os.mkdir("./data/output_hough")
+    if os.path.exists(output_folder) == False:
+        os.mkdir(output_folder)
 
     # 画像の読み込み
     image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    cv2.imwrite("./data/output_hough/original.png", image)
+    cv2.imwrite(output_folder + "/original.png", image)
 
     # Hough変換による直線検出
     if edge_extraction:
         edges = cv2.Canny(image, 50, 100)
-        cv2.imwrite("./data/output_hough/canny.png", edges)
+        cv2.imwrite(output_folder + "/canny.png", edges)
         lines = cv2.HoughLines(edges, 1, np.pi / 180, threshold=hough_threshold)
     else:
         lines = cv2.HoughLines(image, 1, np.pi / 180, threshold=hough_threshold)
@@ -66,9 +66,9 @@ def detect_line(
         cv2.line(rgb_image, (x1, y1), (x2, y2), line_color, 1)
 
     # 結果の保存
-    cv2.imwrite("./data/output_hough/detected_lines.png", rgb_image)
+    cv2.imwrite(output_folder + "/detected_lines.png", rgb_image)
     df = pd.DataFrame(lines_list, columns=["slope", "intercept"])
-    df.to_csv("./data/output_hough/line_parapeters.csv", index=False)
+    df.to_csv(output_folder + "/line_parapeters.csv", index=False)
 
 def detect_line_segment(
     filepath: str,
@@ -79,24 +79,34 @@ def detect_line_segment(
     hough_maxLineGap: int = 2,
 ) -> None:
     """ 一般化Hough変換( cv2.HoughLinesP() ) を用いた線分抽出。
+
+    Args:
+        filepath: 入力画像パス
+        voltage_per_pixel: [volt / px]    <- TODO: 縦横で違う場合に対応させたい
+        edge_extraction: エッジ検出をするかどうか
+
+        hough_threshold: cv2.HoughLinesP に渡すパラメータ
+        hough_minLineLength:
+        hough_maxLineGap: 
+
     """
     # フォルダ準備
-    if os.path.exists("./data/output_hough"):
-        shutil.rmtree("./data/output_hough")
-    os.mkdir("./data/output_hough")
-    os.mkdir("./data/output_hough/individual_line")
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
+    os.mkdir(output_folder)
+    os.mkdir(output_folder + "/individual_line")
 
     # 画像の読み込み
     image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
     rgb_image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    cv2.imwrite("./data/output_hough/original.png", image)
+    cv2.imwrite(output_folder + "/original.png", image)
     height, width = image.shape[:2]
     print(f"image size: ({height}, {width})")
 
     # Hough変換による直線検出
     if edge_extraction:
         edges = cv2.Canny(image, 50, 100)
-        cv2.imwrite("./data/output_hough/canny.png", edges)
+        cv2.imwrite(output_folder + "/canny.png", edges)
         lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=hough_threshold, minLineLength=hough_minLineLength, maxLineGap=hough_maxLineGap)
     else:
         lines = cv2.HoughLinesP(image, 1, np.pi / 180, threshold=hough_threshold, minLineLength=hough_minLineLength, maxLineGap=hough_maxLineGap)
@@ -125,28 +135,28 @@ def detect_line_segment(
             num_of_vertical_lines += 1
             lines_list.append(["vertical", slope, intercept * voltage_per_pixel])
             cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
-            cv2.imwrite(f"./data/output_hough/individual_line/vertical_{i}.png", one_line_image)
+            cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
         elif -1 <= slope <= 0:
             # 緑
             line_color = (0, 255, 0)
             num_of_horizontal_lines += 1
             lines_list.append(["horizontal",slope, intercept * voltage_per_pixel])
             cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
-            cv2.imwrite(f"./data/output_hough/individual_line/horizontal_{i}.png", one_line_image)
+            cv2.imwrite(output_folder + f"/individual_line/horizontal_{i}.png", one_line_image)
         else:
             # 青
             line_color = (255, 0, 0)
             num_of_interdot_lines += 1
             lines_list.append(["interdot", slope, intercept * voltage_per_pixel])
             cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
-            cv2.imwrite(f"./data/output_hough/individual_line/interdot_{i}.png", one_line_image)
+            cv2.imwrite(output_folder + f"/individual_line/interdot_{i}.png", one_line_image)
         cv2.line(all_lines_image, (x1, y1), (x2, y2), line_color, 1)
-    print(f"|- Horizontal: {num_of_horizontal_lines}\n|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}")
+    print(f"|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Horizontal: {num_of_horizontal_lines}")
 
     # 結果の保存
-    cv2.imwrite("./data/output_hough/detected_lines.png", all_lines_image)
+    cv2.imwrite(output_folder + "/detected_lines.png", all_lines_image)
     df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
-    df.sort_values(by="type").to_csv("./data/output_hough/line_parapeters.csv", index=True)
+    df.sort_values(by="type").to_csv(output_folder + "/line_parapeters.csv", index=True)
 
 def hough_transform(
     img,
@@ -162,6 +172,10 @@ def hough_transform(
 
     Returns:
         npt.NDArray: Hough変換した結果。rho,thetaで表された直線の投票数を保存。(縦軸rho, 横軸theta)
+
+    
+    画像保存用コード:
+        
     """
     # エッジ座標
     y, x = np.where(img)
@@ -181,7 +195,7 @@ def hough_transform(
     # 縦軸：ρ, 横軸：θ　2次元配列
     hough_array = np.array(hough).T  # 転置して各列が異なる角度に対応
     
-    # -pi ~ pi のρ-θ図を作成
+    # pngで保存
     plt.imshow(hough_array, cmap='viridis', extent=[-180, 180, 0, rho_max*rho_res], aspect='auto', origin='lower')
     plt.colorbar(label='Votes')
     plt.title('Hough Transform in rho - theta Space')
@@ -195,6 +209,7 @@ def hough_transform(
 def hough_transform_CSD(
     method: MethodType,
     filepath: str, 
+    edge_extraction: bool = True,
     lower_threshold_vertical: int = 0,
     upper_threshold_vertical: int = 10000000,
     lower_threshold_interdot: int = 0,
@@ -209,7 +224,7 @@ def hough_transform_CSD(
 
     Args:
         method: モード制御
-        filepath: 入力画像
+        filepath: 二値画像
 
         lower_threshold_vertical:       直線検出用の閾値
         upper_threshold_vertical: 
@@ -231,13 +246,18 @@ def hough_transform_CSD(
 
     # 画像の読み込み
     img = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
-    rgb_img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     cv2.imwrite(output_folder + "/original.png", img)
+    rgb_img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    if edge_extraction:
+        img = cv2.Canny(img, 50, 100)
+        cv2.imwrite(output_folder + "/original_edge.png", img)
     height, width = img.shape[:2]
     img = np.array(img)
 
-    # ρ-θ図を3つの範囲に分割
+    # -pi ~ pi のρ-θ図を作成
     hough_array = hough_transform(img, rho_res, theta_res)    # 縦軸：ρ, 横軸：θ　2次元配列
+
+    # ρ-θ図を3つの範囲に分割
     hough_array_vertical, hough_array_interdot, hough_array_horizontal = _split_hough_array(hough_array)
     
     theta_array = np.arange(hough_array.shape[1])
@@ -247,10 +267,10 @@ def hough_transform_CSD(
         case "slope_intercept":
             # 目標: 3つのtheta領域それぞれに対し, 個別に通常のHough変換による 直線(rho + theta) 抽出
 
-            os.mkdir("./data/output_hough/individual_line")
-            os.mkdir("./data/output_hough/individual_line/vertical")
-            os.mkdir("./data/output_hough/individual_line/interdot")
-            os.mkdir("./data/output_hough/individual_line/horizontal")            
+            os.mkdir(output_folder + "/individual_line")
+            os.mkdir(output_folder + "/individual_line/vertical")
+            os.mkdir(output_folder + "/individual_line/interdot")
+            os.mkdir(output_folder + "/individual_line/horizontal")            
 
             # 各領域で異なる閾値のもと、投票数が極大値をとる座標を取得
             peak_vertical = _detect_peak_coordinate(
@@ -376,7 +396,7 @@ def hough_transform_CSD(
             )
             cv2.imwrite(output_folder + "/detected_slope.png", output_img)
 
-def generalized_hough_transform(
+def generalized_hough_transform_CSD(
     
 ):
     pass
@@ -546,6 +566,7 @@ if __name__ == "__main__":
     hough_transform_CSD(
         method="slope",
         filepath=filepath,
+        edge_extraction=False,
         lower_threshold_vertical=30,
         upper_threshold_vertical=32,
         lower_threshold_interdot=11,
