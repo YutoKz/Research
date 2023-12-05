@@ -7,10 +7,12 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 
-filename = "./data/input_hitachi/2023-03-28_09_40_50.699913.npy"
-#filename = "./data/input_hitachi/2023-03-23_15_10_40.163763.npy"
+folder = "./data/input_hitachi/original"
 
-data = np.load(filename)
+filepath = folder + "/2023-03-23_15_10_40.163763.npy"
+filepath = folder + "/2023-03-28_09_40_50.699913.npy"
+
+data = np.load(filepath)
 
 voltage_res_0 = data[0, 0, 1] - data[0, 0, 0]
 voltage_res_1 = data[1, 1, 0] - data[1, 0, 0]
@@ -31,8 +33,10 @@ normalized_array = (array - np.min(array)) / (np.max(array) - np.min(array))
     
 scaled_array = normalized_array * 255.0
     
-uint8_array = scaled_array.astype(np.uint8)
+output_array = scaled_array.astype(np.uint8)
 
-print(f"output shape: {uint8_array.shape}")
+# [普段コメントアウト] 解像度調整
+output_array = cv2.resize(output_array, (2*151, 2*60))
 
-cv2.imwrite("./data/input_hitachi/csd.png", np.flip(uint8_array, axis=0))
+print(f"output shape: {np.flip(output_array, axis=0).shape}")
+cv2.imwrite(folder + "/output_npy2img.png", np.flip(output_array, axis=0))
