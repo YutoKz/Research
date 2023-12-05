@@ -4,11 +4,11 @@ def integrate_edges(
     filepath_line: str,
     filepath_triangle: str,
 ) -> str:
-    """三角形の輪郭と直線を合わせる
+    """ 三角形の輪郭と直線を合わせる
 
     Args:
-        filepath_line: CSDの直線の二値画像
-        filepath_triangle: CSDの三角形の二値画像
+        filepath_line:      CSDの直線の二値画像
+        filepath_triangle:  CSDの三角形の二値画像
         
     """
     filepath_output = "./data/output_utils/edge.png"
