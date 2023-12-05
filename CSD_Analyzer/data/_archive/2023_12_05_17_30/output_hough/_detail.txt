@@ -1,0 +1,12 @@
+高橋CSDのUnetによる二値画像をCannyしたものに適用
+
+hough_transform_CSD(
+        method="slope_intercept",
+        filepath=filepath,
+        lower_threshold_vertical=30,
+        upper_threshold_vertical=32,
+        lower_threshold_interdot=11,
+        upper_threshold_interdot=11,
+        lower_threshold_horizontal=40,
+        upper_threshold_horizontal=1000000,
+    )
