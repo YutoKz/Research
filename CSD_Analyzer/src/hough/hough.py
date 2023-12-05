@@ -195,9 +195,12 @@ def hough_transform(
 def hough_transform_CSD(
     method: MethodType,
     filepath: str, 
-    threshold_vertical: int = 0,
-    threshold_interdot: int = 0,
-    threshold_horizontal: int = 0,
+    lower_threshold_vertical: int = 0,
+    upper_threshold_vertical: int = 10000000,
+    lower_threshold_interdot: int = 0,
+    upper_threshold_interdot: int = 10000000,
+    lower_threshold_horizontal: int = 0,
+    upper_threshold_horizontal: int = 10000000,
     voltage_per_pixel: float = 1.0,
     rho_res: float = 0.5,
     theta_res: float = np.pi / 180,
@@ -247,25 +250,25 @@ def hough_transform_CSD(
             peak_vertical = _detect_peak_coordinate(
                 hough_array_vertical, 
                 theta_array_vertical,
-                threshold_vertical,
+                lower_threshold_vertical,
+                upper_threshold_vertical,
                 #0
             )
             peak_interdot = _detect_peak_coordinate(
                 hough_array_interdot, 
                 theta_array_interdot,
-                threshold_interdot, 
+                lower_threshold_interdot,
+                upper_threshold_interdot, 
                 #int(rng)
             )
             peak_horizontal = _detect_peak_coordinate(
                 hough_array_horizontal,
                 theta_array_horizontal, 
-                threshold_horizontal, 
+                lower_threshold_horizontal, 
+                upper_threshold_horizontal,
                 #int(rng * 3 / 2)
             )
             
-
-
-
             lines_list = []
             all_lines_img = np.copy(rgb_img)
             peaks = [peak_vertical, peak_interdot, peak_horizontal]
@@ -293,64 +296,11 @@ def hough_transform_CSD(
                     
                     _line_rho_theta(all_lines_img, rho, theta, line_colors[p])
 
-            """
-            peak = np.hstack((peak_vertical, peak_interdot, peak_horizontal))   # ここでつなげず別々にしょりしたほうがいいのでは
-
-            # 得られた直線を元の画像に描画
-            print(f"Total: {len(peak[0])}")
-            num_of_horizontal_lines = 0
-            num_of_vertical_lines = 0
-            num_of_interdot_lines = 0
-            lines_list = []
-            all_lines_img = np.copy(rgb_img)
-
-            for i in range(peak.shape[1]):
-                rho = peak[0, i] * rho_res
-                theta = peak[1, i] * theta_res - np.pi
-
-                if np.sin(theta) != 0:
-                    intercept = height - 1 - int(rho / np.sin(theta))
-                    slope = -1 * np.cos(theta) / np.sin(theta)
-
-                    one_line_image = np.copy(rgb_img)
-                    if  slope < 0:
-                        # interdot
-                        num_of_interdot_lines += 1
-                        lines_list.append(["interdot", -1 * slope, intercept * voltage_per_pixel, hough_array[peak[0, i], peak[1, i]]])
-                        _line_rho_theta(one_line_image, rho, theta)
-                        cv2.imwrite(output_folder + f"/individual_line/interdot_{i}.png", one_line_image)
-                    elif slope < 1:
-                        # horizontal
-                        num_of_horizontal_lines += 1
-                        lines_list.append(["horizontal", -1 * slope, intercept * voltage_per_pixel, hough_array[peak[0, i], peak[1, i]]])
-                        _line_rho_theta(one_line_image, rho, theta)
-                        cv2.imwrite(output_folder + f"/individual_line/horizontal_{i}.png", one_line_image)
-                    else:
-                        # vertical
-                        num_of_vertical_lines += 1 
-                        lines_list.append(["vertical", -1 * slope, intercept * voltage_per_pixel, hough_array[peak[0, i], peak[1, i]]])
-                        _line_rho_theta(one_line_image, rho, theta)
-                        cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
-                else:
-                    # 傾き無限大の場合
-                    num_of_vertical_lines += 1
-                    lines_list.append(["vertical", 'inf', rho, hough_array[peak[0, i], peak[1, i]]])
-                    one_line_image = np.copy(rgb_img)
-                    _line_rho_theta(one_line_image, rho, theta)
-                    cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
-
-                _line_rho_theta(all_lines_img, rho, theta)
-
-            """
-
-
-
-
             print(f"|- Vertical:   {peaks[0].shape[1]}\n|- Interdot:   {peaks[1].shape[1]}\n|- Horizontal: {peaks[2].shape[1]}")
 
             cv2.imwrite(output_folder + "/detected_lines.png", all_lines_img)
             df = pd.DataFrame(lines_list, columns=["index", "type", "slope", "intercept", "votes"])
-            df.to_csv(output_folder + "/line_parapeters.csv", index=False)
+            df.sort_values(by=["type", "slope"]).to_csv(output_folder + "/line_parapeters.csv", index=False)
 
         case "slope":
             # 目標: 傾きを３種類求める
@@ -417,7 +367,8 @@ def generalized_hough_transform(
 def _detect_peak_coordinate(
     hough_array: npt.NDArray,
     theta_array: npt.NDArray,
-    threshold: int,
+    lower_threshold: int,
+    upper_threshold: int, 
     #theta_gap: int,
 ) -> npt.NDArray:
     """
@@ -430,7 +381,9 @@ def _detect_peak_coordinate(
     # cv2.HoughLinesを再現した以下のサイトを参考にした。
     # https://campkougaku.com/2021/08/17/hough3/#toc2
     thresholded_hough_array = np.copy(hough_array)
-    thresholded_hough_array[thresholded_hough_array < threshold] = 0
+    thresholded_hough_array[thresholded_hough_array < lower_threshold] = 0
+    thresholded_hough_array[thresholded_hough_array > upper_threshold] = 0
+
  
     peak_local = (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[0:-2, 1:-1]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[2:, 1:-1]) * \
            (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 0:-2]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 2:]) * \
@@ -567,9 +520,10 @@ if __name__ == "__main__":
     hough_transform_CSD(
         method="slope_intercept",
         filepath=filepath,
-        threshold_vertical=40,
-        threshold_interdot=10,
-        threshold_horizontal=30,
+        lower_threshold_vertical=40,
+        lower_threshold_interdot=10,
+        upper_threshold_interdot=11,
+        lower_threshold_horizontal=30,
     )
 
     
