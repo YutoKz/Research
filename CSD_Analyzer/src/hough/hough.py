@@ -262,6 +262,38 @@ def hough_transform_CSD(
                 threshold_horizontal, 
                 #int(rng * 3 / 2)
             )
+            
+
+
+
+            lines_list = []
+            all_lines_img = np.copy(rgb_img)
+            peaks = [peak_vertical, peak_interdot, peak_horizontal]
+            slope_types = ["vertical", "interdot", "horizontal"]
+            line_colors = [(0, 0, 255), (255, 0, 0), (0, 255, 0)]
+
+            for p, peak in enumerate(peaks):
+                for i in range(peak.shape[1]):
+                    rho = peak[0, i] * rho_res
+                    theta = peak[1, i] * theta_res - np.pi
+                    
+                    one_line_image = np.copy(rgb_img)
+                    
+                    if np.sin(theta) != 0:
+                        intercept = height - 1 - int(rho / np.sin(theta))
+                        slope = -1 * np.cos(theta) / np.sin(theta)
+
+                        lines_list.append([i, slope_types[p], -1 * slope,  intercept * voltage_per_pixel,  hough_array[peak[0, i], peak[1, i]]])
+                    else:
+                        # 傾き無限大の場合
+                        lines_list.append([i, slope_types[p], 'inf',       rho,                            hough_array[peak[0, i], peak[1, i]]])
+
+                    _line_rho_theta(one_line_image, rho, theta, line_colors[p])
+                    cv2.imwrite(output_folder + "/individual_line/" + slope_types[p] + f"_{i}.png", one_line_image)
+                    
+                    _line_rho_theta(all_lines_img, rho, theta, line_colors[p])
+
+            """
             peak = np.hstack((peak_vertical, peak_interdot, peak_horizontal))   # ここでつなげず別々にしょりしたほうがいいのでは
 
             # 得られた直線を元の画像に描画
@@ -271,6 +303,7 @@ def hough_transform_CSD(
             num_of_interdot_lines = 0
             lines_list = []
             all_lines_img = np.copy(rgb_img)
+
             for i in range(peak.shape[1]):
                 rho = peak[0, i] * rho_res
                 theta = peak[1, i] * theta_res - np.pi
@@ -308,12 +341,16 @@ def hough_transform_CSD(
 
                 _line_rho_theta(all_lines_img, rho, theta)
 
+            """
 
-            print(f"|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Horizontal: {num_of_horizontal_lines}")
+
+
+
+            print(f"|- Vertical:   {peaks[0].shape[1]}\n|- Interdot:   {peaks[1].shape[1]}\n|- Horizontal: {peaks[2].shape[1]}")
 
             cv2.imwrite(output_folder + "/detected_lines.png", all_lines_img)
-            df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept", "votes"])
-            df.sort_values(by="type").to_csv(output_folder + "/line_parapeters.csv", index=True)
+            df = pd.DataFrame(lines_list, columns=["index", "type", "slope", "intercept", "votes"])
+            df.to_csv(output_folder + "/line_parapeters.csv", index=False)
 
         case "slope":
             # 目標: 傾きを３種類求める
@@ -403,7 +440,6 @@ def _detect_peak_coordinate(
     for i, t in enumerate(peak_local[1]):
         peak_global[1, i] = theta_array[t]
     #peak[1, :] += theta_gap
-    print(peak_global)
     
     return peak_global
 
@@ -441,6 +477,7 @@ def _line_rho_theta(
     img,
     rho,
     theta,
+    line_color,
 ):
     """
     Args:
@@ -454,15 +491,17 @@ def _line_rho_theta(
     if theta != 0 and theta != np.pi and theta != -np.pi:
         y1 = int(rho / np.sin(theta))
         y2 = int(y1 - x2 / np.tan(theta)) if np.cos(theta) != 0 else y1
+        """
         if theta < 0: 
             line_color = (0, 0, 255)
         elif 0 <= theta <= np.pi/2:
             line_color = (255, 0, 0)
         else:
-            line_color = (0, 255, 0) 
+            line_color = (0, 255, 0)
+        """ 
         cv2.line(img, (x1, y1), (x2, y2), line_color, 1)
     else:
-        cv2.line(img, (int(rho), 0), (int(rho), height-1), (0, 0, 255), 1)
+        cv2.line(img, (int(rho), 0), (int(rho), height-1), line_color, 1)
 
 def _split_hough_array(hough_array):
     hough_tmp = np.copy(hough_array)
@@ -528,8 +567,8 @@ if __name__ == "__main__":
     hough_transform_CSD(
         method="slope_intercept",
         filepath=filepath,
-        threshold_vertical=53,
-        threshold_interdot=30,
+        threshold_vertical=40,
+        threshold_interdot=10,
         threshold_horizontal=30,
     )
 
