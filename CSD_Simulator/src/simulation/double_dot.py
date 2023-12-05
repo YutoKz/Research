@@ -109,7 +109,7 @@ class ClassicDoubleQuantumDot:
         self,
         range_v0: SimRange,
         range_v1: SimRange,
-        width: int = 2,
+        width: int = 2,    # これは変更しない方がいいかも
         intensity_background: float = 0.0,
         intensity_line: float = 1.0,
         intensity_triangle: float = 1.0,

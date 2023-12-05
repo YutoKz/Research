@@ -4,6 +4,7 @@
 *.csv
 *.npy
 detail.txt
+*Zone.Identifier
 
 
 # Byte-compiled / optimized / DLL files

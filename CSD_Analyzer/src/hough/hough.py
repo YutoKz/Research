@@ -262,7 +262,7 @@ def hough_transform_CSD(
                 threshold_horizontal, 
                 #int(rng * 3 / 2)
             )
-            peak = np.hstack((peak_vertical, peak_interdot, peak_horizontal))
+            peak = np.hstack((peak_vertical, peak_interdot, peak_horizontal))   # ここでつなげず別々にしょりしたほうがいいのでは
 
             # 得られた直線を元の画像に描画
             print(f"Total: {len(peak[0])}")
@@ -275,35 +275,44 @@ def hough_transform_CSD(
                 rho = peak[0, i] * rho_res
                 theta = peak[1, i] * theta_res - np.pi
 
-                intercept = height - 1 - int(rho / np.sin(theta))
-                slope = -1 / np.tan(theta)
+                if np.sin(theta) != 0:
+                    intercept = height - 1 - int(rho / np.sin(theta))
+                    slope = -1 * np.cos(theta) / np.sin(theta)
 
-                one_line_image = np.copy(rgb_img)
-                if  slope < 0:
-                    # interdot
-                    num_of_interdot_lines += 1
-                    lines_list.append(["interdot", -1 * slope, intercept * voltage_per_pixel])
-                    _line_rho_theta(one_line_image, rho, theta)
-                    cv2.imwrite(output_folder + f"/individual_line/interdot_{i}.png", one_line_image)
-                elif slope < 1:
-                    # horizontal
-                    num_of_horizontal_lines += 1
-                    lines_list.append(["horizontal", -1 * slope, intercept * voltage_per_pixel])
-                    _line_rho_theta(one_line_image, rho, theta)
-                    cv2.imwrite(output_folder + f"/individual_line/horizontal_{i}.png", one_line_image)
+                    one_line_image = np.copy(rgb_img)
+                    if  slope < 0:
+                        # interdot
+                        num_of_interdot_lines += 1
+                        lines_list.append(["interdot", -1 * slope, intercept * voltage_per_pixel, hough_array[peak[0, i], peak[1, i]]])
+                        _line_rho_theta(one_line_image, rho, theta)
+                        cv2.imwrite(output_folder + f"/individual_line/interdot_{i}.png", one_line_image)
+                    elif slope < 1:
+                        # horizontal
+                        num_of_horizontal_lines += 1
+                        lines_list.append(["horizontal", -1 * slope, intercept * voltage_per_pixel, hough_array[peak[0, i], peak[1, i]]])
+                        _line_rho_theta(one_line_image, rho, theta)
+                        cv2.imwrite(output_folder + f"/individual_line/horizontal_{i}.png", one_line_image)
+                    else:
+                        # vertical
+                        num_of_vertical_lines += 1 
+                        lines_list.append(["vertical", -1 * slope, intercept * voltage_per_pixel, hough_array[peak[0, i], peak[1, i]]])
+                        _line_rho_theta(one_line_image, rho, theta)
+                        cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
                 else:
-                    # vertical
-                    num_of_vertical_lines += 1 
-                    lines_list.append(["vertical", -1 * slope, intercept * voltage_per_pixel])
+                    # 傾き無限大の場合
+                    num_of_vertical_lines += 1
+                    lines_list.append(["vertical", 'inf', rho, hough_array[peak[0, i], peak[1, i]]])
+                    one_line_image = np.copy(rgb_img)
                     _line_rho_theta(one_line_image, rho, theta)
                     cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
-                
+
                 _line_rho_theta(all_lines_img, rho, theta)
+
 
             print(f"|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Horizontal: {num_of_horizontal_lines}")
 
             cv2.imwrite(output_folder + "/detected_lines.png", all_lines_img)
-            df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
+            df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept", "votes"])
             df.sort_values(by="type").to_csv(output_folder + "/line_parapeters.csv", index=True)
 
         case "slope":
@@ -494,30 +503,35 @@ def _split_theta_array(theta_array):
 
 if __name__ == "__main__":
 
-    
+    """
     filepath_line = "./data/output_train_simu/result/6_class1.png"
     filepath_triangle = "./data/output_train_simu/result/6_class2.png"
     filepath = integrate_edges(filepath_line, filepath_triangle)
-
-   
-    hough_transform_CSD(
-        method="slope",
-        filepath=filepath,
-        threshold_vertical=15,
-        threshold_interdot=15,
-        threshold_horizontal=18,
-    )
-    """
     
     filepath = "./data/output_utils/small.png"
+
+    """
+    filepath = "./data/_archive/canny.png"
     
     
+    
+    """
     detect_line_segment(
         filepath=filepath, 
-        edge_extraction=False,
-        hough_threshold=10,         
-        hough_minLineLength=3,     
-        hough_maxLineGap=3              
+        edge_extraction=True,
+        hough_threshold=40,         
+        hough_minLineLength=10,     
+        hough_maxLineGap=5              
     )
+
     """
+    hough_transform_CSD(
+        method="slope_intercept",
+        filepath=filepath,
+        threshold_vertical=53,
+        threshold_interdot=30,
+        threshold_horizontal=30,
+    )
+
+    
     

@@ -36,7 +36,7 @@ scaled_array = normalized_array * 255.0
 output_array = scaled_array.astype(np.uint8)
 
 # [普段コメントアウト] 解像度調整
-output_array = cv2.resize(output_array, (2*151, 2*60))
+output_array = cv2.resize(output_array, (2*151, 2*60)) # (横, 縦)
 
 print(f"output shape: {np.flip(output_array, axis=0).shape}")
 cv2.imwrite(folder + "/output_npy2img.png", np.flip(output_array, axis=0))
