@@ -27,8 +27,8 @@ def main() -> None:
     salt_prob = 0.0
     pepper_prob = 0.0
     random_prob = 0.0
+    gaussian = 2.0
     min_filter = 3
-    gaussian = 0.0
 
     # range
     range_v0 = SimRange(0, 10, 0.1)
@@ -70,6 +70,7 @@ def main() -> None:
         pepper_prob=pepper_prob,
         random_prob=random_prob,
         gaussian=gaussian, 
+        min_filter=min_filter
     )
 
     # original CSD

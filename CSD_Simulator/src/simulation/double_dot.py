@@ -116,8 +116,8 @@ class ClassicDoubleQuantumDot:
         salt_prob: float = 0.0,
         pepper_prob: float = 0.0,
         random_prob: float = 0.0, 
-        min_filter: int = 3,
         gaussian: float = 0.0,
+        min_filter: int = None,
     ) -> npt.NDArray[np.float64]:
         """CSDをシミュレーションする関数. 塗りつぶしあり
 
@@ -166,7 +166,6 @@ class ClassicDoubleQuantumDot:
             intensity_background=intensity_background, 
             intensity_line=intensity_line,
             intensity_triangle=intensity_triangle,
-            min_filter=min_filter,
         )
         
         # ノイズ付与
@@ -179,6 +178,11 @@ class ClassicDoubleQuantumDot:
 
         # ガウシアンフィルタ
         output_csd: npt.NDArray[np.float64] = gaussian_filter(output_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
+
+        # 最小値フィルタ
+        if min_filter != None:
+            kernel = np.ones((min_filter, min_filter), np.uint8)
+            output_csd = cv2.erode(output_csd, kernel)
 
         return label_csd, output_csd
 
