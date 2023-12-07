@@ -161,27 +161,24 @@ class ClassicDoubleQuantumDot:
         label_csd = np.array(csd_img)
 
         # 強度情報をもとにグレースケール化
-        grayscale_csd: npt.NDArray[np.float64] = _to_grayscale(
+        output_csd: npt.NDArray[np.float64] = _to_grayscale(
             label_csd, 
             intensity_background=intensity_background, 
             intensity_line=intensity_line,
             intensity_triangle=intensity_triangle,
+            min_filter=min_filter,
         )
         
         # ノイズ付与
-        noisy_csd: npt.NDArray[np.float64] = _add_noise(
-            grayscale_csd, 
+        output_csd: npt.NDArray[np.float64] = _add_noise(
+            output_csd, 
             salt_prob=salt_prob, 
             pepper_prob=pepper_prob, 
             random_prob=random_prob,
         )  
 
-        # 最小値フィルタ
-        kernel = np.ones((min_filter, min_filter), np.uint8)
-        min_filtered_csd = cv2.erode(noisy_csd, kernel)
-
         # ガウシアンフィルタ
-        output_csd: npt.NDArray[np.float64] = gaussian_filter(min_filtered_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
+        output_csd: npt.NDArray[np.float64] = gaussian_filter(output_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
 
         return label_csd, output_csd
 

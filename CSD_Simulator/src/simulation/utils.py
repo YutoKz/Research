@@ -2,6 +2,7 @@ import numpy as np
 import numpy.typing as npt
 from scipy.ndimage import gaussian_filter  # type: ignore  # noqa: PGH003
 import random
+import cv2
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
@@ -26,14 +27,14 @@ def _to_grayscale(
         image, 
         intensity_background,
         intensity_line,
-        intensity_triangle
+        intensity_triangle, 
     ):
     """入力画像(ラベル形式)を、各要素の強度情報をもとにグレースケール化する。ただし値は0.0~1.0とする。"""
     grayscale_csd = np.copy(image)
-    grayscale_csd[grayscale_csd == 0] = intensity_background
-    grayscale_csd[grayscale_csd == 1] = intensity_line
-    grayscale_csd[grayscale_csd == 2] = intensity_triangle
-    
+    grayscale_csd[image == 0] = intensity_background
+    grayscale_csd[image == 1] = intensity_line
+    grayscale_csd[image == 2] = intensity_triangle
+        
     return grayscale_csd
 
 def _add_noise(
