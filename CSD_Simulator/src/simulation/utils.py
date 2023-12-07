@@ -22,7 +22,7 @@ class SimRange:
         """シミュレーション範囲をnumpy配列で返す."""
         return np.arange(self.start, self.end, self.step)
 
-def to_grayscale(
+def _to_grayscale(
         image, 
         intensity_background,
         intensity_line,
@@ -36,7 +36,7 @@ def to_grayscale(
     
     return grayscale_csd
 
-def add_noise(
+def _add_noise(
         image, 
         salt_prob, 
         pepper_prob, 

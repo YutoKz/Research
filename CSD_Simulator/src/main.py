@@ -27,6 +27,7 @@ def main() -> None:
     salt_prob = 0.0
     pepper_prob = 0.0
     random_prob = 0.0
+    min_filter = 3
     gaussian = 2.0
 
     # range
@@ -68,6 +69,7 @@ def main() -> None:
         salt_prob=salt_prob,
         pepper_prob=pepper_prob,
         random_prob=random_prob,
+        min_filter=min_filter,
         gaussian=gaussian, 
     )
 

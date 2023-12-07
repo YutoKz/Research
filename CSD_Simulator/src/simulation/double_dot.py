@@ -5,10 +5,10 @@ import numpy as np
 import numpy.typing as npt
 from PIL import Image, ImageDraw
 from scipy.ndimage import gaussian_filter  # type: ignore  # noqa: PGH003
-import random
+import cv2
 
 from .utils import SimRange
-from .utils import to_grayscale, add_noise
+from .utils import _to_grayscale, _add_noise
 
 BorderType = Literal["3", "4", "5"]
 
@@ -98,7 +98,7 @@ class ClassicDoubleQuantumDot:
                 original_csd[i, j] = self._calculate_CSD_heatmap(v0, v1, thickness)
 
         # ノイズを追加
-        output_csd: npt.NDArray[np.float64] = add_noise(original_csd, salt_prob=salt_prob, pepper_prob=pepper_prob, random_prob=random_prob)  
+        output_csd: npt.NDArray[np.float64] = _add_noise(original_csd, salt_prob=salt_prob, pepper_prob=pepper_prob, random_prob=random_prob)  
 
         # ガウシアンフィルタ
         output_csd: npt.NDArray[np.float64] = gaussian_filter(output_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
@@ -116,6 +116,7 @@ class ClassicDoubleQuantumDot:
         salt_prob: float = 0.0,
         pepper_prob: float = 0.0,
         random_prob: float = 0.0, 
+        min_filter: int = 3,
         gaussian: float = 0.0,
     ) -> npt.NDArray[np.float64]:
         """CSDをシミュレーションする関数. 塗りつぶしあり
@@ -133,6 +134,7 @@ class ClassicDoubleQuantumDot:
             salt_prob: salt ノイズの割合
             pepper_prob: pepper ノイズの割合
             random_prob: random ノイズの割合
+            min_filter: 最小値フィルタのカーネルサイズ
             gaussian: ガウシアンフィルタの標準偏差
         
         Returns:
@@ -159,7 +161,7 @@ class ClassicDoubleQuantumDot:
         label_csd = np.array(csd_img)
 
         # 強度情報をもとにグレースケール化
-        grayscale_csd: npt.NDArray[np.float64] = to_grayscale(
+        grayscale_csd: npt.NDArray[np.float64] = _to_grayscale(
             label_csd, 
             intensity_background=intensity_background, 
             intensity_line=intensity_line,
@@ -167,15 +169,19 @@ class ClassicDoubleQuantumDot:
         )
         
         # ノイズ付与
-        noisy_csd: npt.NDArray[np.float64] = add_noise(
+        noisy_csd: npt.NDArray[np.float64] = _add_noise(
             grayscale_csd, 
             salt_prob=salt_prob, 
             pepper_prob=pepper_prob, 
             random_prob=random_prob,
         )  
 
+        # 最小値フィルタ
+        kernel = np.ones((min_filter, min_filter), np.uint8)
+        min_filtered_csd = cv2.erode(noisy_csd, kernel)
+
         # ガウシアンフィルタ
-        output_csd: npt.NDArray[np.float64] = gaussian_filter(noisy_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
+        output_csd: npt.NDArray[np.float64] = gaussian_filter(min_filtered_csd, sigma=gaussian)  # type: ignore  # noqa: PGH003
 
         return label_csd, output_csd
 
