@@ -6,10 +6,6 @@ import os, shutil
 
 output_folder = "./data/output_utils"
 
-if os.path.exists(output_folder):
-    shutil.rmtree(output_folder)
-os.mkdir(output_folder)
-
 def integrate_edges(
     filepath_line: str,
     filepath_triangle: str,
@@ -42,6 +38,10 @@ def thin_binary_image(filepath: str) -> npt.NDArray:
     
     return thinning
     """
+    if os.path.exists(output_folder):
+        shutil.rmtree(output_folder)
+    os.mkdir(output_folder)
+
     binary_image = io.imread(filepath, as_gray=True)
     thinned_image = skeletonize(binary_image)
     thinned_image = (thinned_image * 255).astype('uint8')
@@ -51,6 +51,6 @@ def thin_binary_image(filepath: str) -> npt.NDArray:
     return thinned_image
 
 if __name__ == "__main__":
-    filepath = "./data/_archive/takahashi/192_192.png"
+    filepath = "./data/_archive/takahashi/thinning.png"
 
     thin_binary_image(filepath=filepath)

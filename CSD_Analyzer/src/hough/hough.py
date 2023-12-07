@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import os, shutil
 from typing import Literal
 
-from utils import integrate_edges
+from utils import integrate_edges, thin_binary_image
 
 
 output_folder = "./data/output_hough"
@@ -223,7 +223,8 @@ def hough_transform(
 def hough_transform_CSD(
     method: MethodType,
     filepath: str, 
-    edge_extraction: bool = True,
+    edge_extraction: bool = False,
+    thinning: bool = True,
     lower_threshold: int = 0,
     upper_threshold: int = 10000000,
     lower_threshold_interdot: int = None,
@@ -237,6 +238,7 @@ def hough_transform_CSD(
     Args:
         method: モード制御
         filepath: 二値画像
+        edge_detection: 読み込んだ画像にエッジ検出をかけるかどうか
 
         lower_threshold: rho-theta空間上で直線検出する際, これ未満の投票数のものを無視する.
         upper_threshold: rho-theta空間上で直線検出する際, これ以上の投票数のものを無視する.
@@ -257,10 +259,13 @@ def hough_transform_CSD(
     # 画像の読み込み
     img = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
     cv2.imwrite(output_folder + "/original.png", img)
-    rgb_img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     if edge_extraction:
         img = cv2.Canny(img, 50, 100)
         cv2.imwrite(output_folder + "/original_edge.png", img)
+    if thinning:
+        img = thin_binary_image(output_folder + "/original.png")
+        cv2.imwrite(output_folder + "/thinned.png", img)
+    rgb_img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     height, width = img.shape[:2]
     img = np.array(img)
 
@@ -557,7 +562,7 @@ if __name__ == "__main__":
 
     filepath = "./data/input_hitachi/small.png"
     """
-    filepath = "./data/_archive/takahashi/canny.png"
+    filepath = "./data/_archive/takahashi/192_192.png"
     
     
     
@@ -582,7 +587,8 @@ if __name__ == "__main__":
         method="slope_intercept",
         filepath=filepath,
         edge_extraction=False,
-        lower_threshold=30,
+        thinning=True,
+        lower_threshold=20,
         upper_threshold=35,
         lower_threshold_interdot=11,
         upper_threshold_interdot=11,
