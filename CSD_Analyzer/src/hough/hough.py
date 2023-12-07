@@ -95,6 +95,9 @@ def detect_line_segment(
         shutil.rmtree(output_folder)
     os.mkdir(output_folder)
     os.mkdir(output_folder + "/individual_line")
+    os.mkdir(output_folder + "/individual_line/vertical")
+    os.mkdir(output_folder + "/individual_line/interdot")
+    os.mkdir(output_folder + "/individual_line/horizontal")
 
     # 画像の読み込み
     image = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)
@@ -106,7 +109,7 @@ def detect_line_segment(
     # Hough変換による直線検出
     if edge_extraction:
         edges = cv2.Canny(image, 50, 100)
-        cv2.imwrite(output_folder + "/canny.png", edges)
+        cv2.imwrite(output_folder + "/edges.png", edges)
         lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=hough_threshold, minLineLength=hough_minLineLength, maxLineGap=hough_maxLineGap)
     else:
         lines = cv2.HoughLinesP(image, 1, np.pi / 180, threshold=hough_threshold, minLineLength=hough_minLineLength, maxLineGap=hough_maxLineGap)
@@ -118,45 +121,56 @@ def detect_line_segment(
     num_of_interdot_lines = 0
     lines_list = []
     all_lines_image = np.copy(rgb_image)
+    vertical_lines_image = np.copy(rgb_image)
+    interdot_lines_image = np.copy(rgb_image)
+    horizontal_lines_image = np.copy(rgb_image)
     for i, line in enumerate(lines):
         x1, y1, x2, y2 = line[0]
         
         # 直線の切片と傾き
         # cv2では左上が原点, 横軸x縦軸yであることに注意
-        slope_minus = (y2 - y1) / (x2 - x1 + 1e-6)  # ゼロ除算を防ぐ
-        slope = slope_minus * -1
-        intercept = (height - y1) - slope * x1
-
+        if x2 != x1:
+            slope_minus = (y2 - y1) / (x2 - x1)  
+            slope = slope_minus * -1
+            intercept = (height - y1) - slope * x1
+        else: # 傾き無限大
+            slope = "inf"
+            intercept = x1
+        
         # 直線を描画
         one_line_image = np.copy(rgb_image)
-        if slope < -1:
-            # 赤
+        if slope == "inf" or slope < -1:          # vertical
             line_color = (0, 0, 255)
+            lines_list.append([num_of_vertical_lines, "vertical", slope, intercept * voltage_per_pixel])
+            cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
+            cv2.imwrite(output_folder + f"/individual_line/vertical/{num_of_vertical_lines}.png", one_line_image)
+            cv2.line(vertical_lines_image, (x1, y1), (x2, y2), line_color, 1)
             num_of_vertical_lines += 1
-            lines_list.append(["vertical", slope, intercept * voltage_per_pixel])
-            cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
-            cv2.imwrite(output_folder + f"/individual_line/vertical_{i}.png", one_line_image)
-        elif -1 <= slope <= 0:
-            # 緑
+        elif -1 <= slope <= 0:  # horizontal
             line_color = (0, 255, 0)
+            lines_list.append([num_of_horizontal_lines, "horizontal",slope, intercept * voltage_per_pixel])
+            cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
+            cv2.imwrite(output_folder + f"/individual_line/horizontal/{num_of_horizontal_lines}.png", one_line_image)
+            cv2.line(horizontal_lines_image, (x1, y1), (x2, y2), line_color, 1)
             num_of_horizontal_lines += 1
-            lines_list.append(["horizontal",slope, intercept * voltage_per_pixel])
-            cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
-            cv2.imwrite(output_folder + f"/individual_line/horizontal_{i}.png", one_line_image)
-        else:
-            # 青
+        else:                   # interdot
             line_color = (255, 0, 0)
-            num_of_interdot_lines += 1
-            lines_list.append(["interdot", slope, intercept * voltage_per_pixel])
+            lines_list.append([num_of_interdot_lines, "interdot", slope, intercept * voltage_per_pixel])
             cv2.line(one_line_image, (x1, y1), (x2, y2), line_color, 1)
-            cv2.imwrite(output_folder + f"/individual_line/interdot_{i}.png", one_line_image)
+            cv2.imwrite(output_folder + f"/individual_line/interdot/{num_of_interdot_lines}.png", one_line_image)
+            cv2.line(interdot_lines_image, (x1, y1), (x2, y2), line_color, 1)
+            num_of_interdot_lines += 1
         cv2.line(all_lines_image, (x1, y1), (x2, y2), line_color, 1)
-    print(f"|- Vertical:   {num_of_vertical_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Horizontal: {num_of_horizontal_lines}")
+
+    print(f"|- Horizontal: {num_of_horizontal_lines}\n|- Interdot:   {num_of_interdot_lines}\n|- Vertical:   {num_of_vertical_lines}")
 
     # 結果の保存
     cv2.imwrite(output_folder + "/detected_lines.png", all_lines_image)
-    df = pd.DataFrame(lines_list, columns=["type", "slope", "intercept"])
-    df.sort_values(by="type").to_csv(output_folder + "/line_parapeters.csv", index=True)
+    cv2.imwrite(output_folder + "/individual_line/vertical.png", vertical_lines_image)
+    cv2.imwrite(output_folder + "/individual_line/interdot.png", interdot_lines_image)
+    cv2.imwrite(output_folder + "/individual_line/horizontal.png", horizontal_lines_image)
+    df = pd.DataFrame(lines_list, columns=["index", "type", "slope", "intercept"])
+    df.sort_values(by=["type", "slope"]).to_csv(output_folder + "/line_parapeters.csv", index=False)
 
 def hough_transform(
     img,
@@ -210,12 +224,10 @@ def hough_transform_CSD(
     method: MethodType,
     filepath: str, 
     edge_extraction: bool = True,
-    lower_threshold_vertical: int = 0,
-    upper_threshold_vertical: int = 10000000,
-    lower_threshold_interdot: int = 0,
-    upper_threshold_interdot: int = 10000000,
-    lower_threshold_horizontal: int = 0,
-    upper_threshold_horizontal: int = 10000000,
+    lower_threshold: int = 0,
+    upper_threshold: int = 10000000,
+    lower_threshold_interdot: int = None,
+    upper_threshold_interdot: int = None,
     voltage_per_pixel: float = 1.0,
     rho_res: float = 0.5,
     theta_res: float = np.pi / 180,
@@ -226,12 +238,10 @@ def hough_transform_CSD(
         method: モード制御
         filepath: 二値画像
 
-        lower_threshold_vertical:       直線検出用の閾値
-        upper_threshold_vertical: 
-        lower_threshold_interdot: 
-        upper_threshold_interdot: 
-        lower_threshold_horizontal
-        upper_threshold_horizontal   
+        lower_threshold: rho-theta空間上で直線検出する際, これ未満の投票数のものを無視する.
+        upper_threshold: rho-theta空間上で直線検出する際, これ以上の投票数のものを無視する.
+        lower_threshold_interdot: interdot直線検出用の閾値 指定した場合こちらの閾値が設定される. 
+        upper_threshold_interdot: interdot直線検出用の閾値 指定した場合こちらの閾値が設定される. 
 
         voltage_per_pixel: 1pxあたりの電圧
 
@@ -276,20 +286,20 @@ def hough_transform_CSD(
             peak_vertical = _detect_peak_coordinate(
                 hough_array_vertical, 
                 theta_array_vertical,
-                lower_threshold_vertical,
-                upper_threshold_vertical,
+                lower_threshold,
+                upper_threshold,
             )
             peak_interdot = _detect_peak_coordinate(
                 hough_array_interdot, 
                 theta_array_interdot,
-                lower_threshold_interdot,
-                upper_threshold_interdot, 
+                lower_threshold if lower_threshold_interdot == None else lower_threshold_interdot,
+                upper_threshold if upper_threshold_interdot == None else upper_threshold_interdot, 
             )
             peak_horizontal = _detect_peak_coordinate(
                 hough_array_horizontal,
                 theta_array_horizontal, 
-                lower_threshold_horizontal, 
-                upper_threshold_horizontal,
+                lower_threshold, 
+                upper_threshold,
             )
             
             lines_list = []
@@ -312,9 +322,10 @@ def hough_transform_CSD(
                         intercept = height - 1 - int(rho / np.sin(theta))
                         slope = -1 * np.cos(theta) / np.sin(theta)
 
-                        lines_list.append([i, slope_types[p], -1 * slope,  intercept * voltage_per_pixel,  hough_array[peak[0, i], peak[1, i]]])
+                        lines_list.append([i, slope_types[p], -1 * slope,  intercept * voltage_per_pixel,   hough_array[peak[0, i], peak[1, i]]])
                     else:   # 傾き無限大の場合
-                        lines_list.append([i, slope_types[p], 'inf',       rho,                            hough_array[peak[0, i], peak[1, i]]])
+                        # TODO: 電圧/pxが縦横異なる場合、rho * 横解像度 
+                        lines_list.append([i, slope_types[p], 'inf',       rho * voltage_per_pixel,         hough_array[peak[0, i], peak[1, i]]])
 
                     # 直線の描画
                     _line_rho_theta(one_line_image, rho, theta, line_colors[p])
@@ -338,24 +349,24 @@ def hough_transform_CSD(
             theta_max_vertical = _calculate_theta_max(
                 hough_array_vertical,
                 theta_array_vertical, 
-                lower_threshold_vertical, 
-                upper_threshold_vertical,
+                upper_threshold,
+                lower_threshold, 
                 theta_res,
                 #0,
             )
             theta_max_interdot = _calculate_theta_max(
                 hough_array_interdot, 
                 theta_array_interdot,
-                lower_threshold_interdot,
-                upper_threshold_interdot, 
+                lower_threshold if lower_threshold_interdot == None else lower_threshold_interdot,
+                upper_threshold if upper_threshold_interdot == None else upper_threshold_interdot, 
                 theta_res,
                 #int(rng),
             )
             theta_max_horizontal = _calculate_theta_max(
                 hough_array_horizontal,
                 theta_array_horizontal, 
-                lower_threshold_horizontal, 
-                upper_threshold_horizontal,
+                lower_threshold, 
+                upper_threshold,
                 theta_res,
                 #int(rng * 3 / 2),
             )
@@ -546,34 +557,41 @@ if __name__ == "__main__":
     filepath_triangle = "./data/output_train_simu/result/6_class2.png"
     filepath = integrate_edges(filepath_line, filepath_triangle)
     
-    filepath = "./data/output_utils/small.png"
 
+    filepath = "./data/input_hitachi/small.png"
     """
     filepath = "./data/_archive/takahashi/canny.png"
     
     
     
     """
-    detect_line_segment(
-        filepath=filepath, 
-        edge_extraction=True,
-        hough_threshold=40,         
-        hough_minLineLength=10,     
-        hough_maxLineGap=5              
+    detect_line(
+        filepath, 
+        edge_extraction=False,
+        hough_threshold=10,
     )
 
+
+    detect_line_segment(
+        filepath=filepath, 
+        edge_extraction=False,
+        hough_threshold=10,         
+        hough_minLineLength=2,     
+        hough_maxLineGap=2              
+    )
     """
+
     hough_transform_CSD(
-        method="slope",
+        method="slope_intercept",
         filepath=filepath,
         edge_extraction=False,
-        lower_threshold_vertical=30,
-        upper_threshold_vertical=32,
+        lower_threshold=30,
+        #upper_threshold=1000000,
         lower_threshold_interdot=11,
         upper_threshold_interdot=11,
-        lower_threshold_horizontal=40,
-        upper_threshold_horizontal=1000000,
-    )
+    ) 
+    
+
 
     
     
