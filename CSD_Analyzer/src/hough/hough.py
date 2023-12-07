@@ -352,7 +352,6 @@ def hough_transform_CSD(
                 upper_threshold,
                 lower_threshold, 
                 theta_res,
-                #0,
             )
             theta_max_interdot = _calculate_theta_max(
                 hough_array_interdot, 
@@ -360,7 +359,6 @@ def hough_transform_CSD(
                 lower_threshold if lower_threshold_interdot == None else lower_threshold_interdot,
                 upper_threshold if upper_threshold_interdot == None else upper_threshold_interdot, 
                 theta_res,
-                #int(rng),
             )
             theta_max_horizontal = _calculate_theta_max(
                 hough_array_horizontal,
@@ -368,7 +366,6 @@ def hough_transform_CSD(
                 lower_threshold, 
                 upper_threshold,
                 theta_res,
-                #int(rng * 3 / 2),
             )
 
             # 検出直線のtheta
@@ -586,7 +583,7 @@ if __name__ == "__main__":
         filepath=filepath,
         edge_extraction=False,
         lower_threshold=30,
-        #upper_threshold=1000000,
+        upper_threshold=35,
         lower_threshold_interdot=11,
         upper_threshold_interdot=11,
     ) 
