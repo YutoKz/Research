@@ -40,8 +40,32 @@ class Application(tk.Frame):
         fm_left_top.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         fm_left_bottom   = tk.Frame(fm_left, bg="lightcoral", width=lb_w, height=lb_h)
         fm_left_bottom.pack(side=tk.BOTTOM, fill=tk.NONE, expand=True)
-        ## 
+        ## left top <- left top 0~3
+        fm_left_top_0 =  tk.Frame(fm_left_top, bg="lightgreen")
+        fm_left_top_0.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        fm_left_top_1 =  tk.Frame(fm_left_top, bg="lightcoral")
+        fm_left_top_1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        fm_left_top_2 =  tk.Frame(fm_left_top, bg="lightgreen")
+        fm_left_top_2.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # left top
+        ## label
+        label_original = tk.Label(fm_left_top_0, text="Input")
+        label_processed = tk.Label(fm_left_top_1, text="Processed")
+        label_rhotheta = tk.Label(fm_left_top_2, text="rho - theta")
+        label_original.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        label_processed.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        label_rhotheta.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        ## image
+        self.image_original = tk.Label(fm_left_top_0)
+        self.image_processed = tk.Label(fm_left_top_1)
+        self.image_rhotheta = tk.Label(fm_left_top_2)
+        self.image_original.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.image_processed.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.image_rhotheta.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
+
+        """
         # left top
         ## label
         label_original = tk.Label(fm_left_top, text="Input", width=20)
@@ -53,7 +77,7 @@ class Application(tk.Frame):
         ## image
         self.panel_img = tk.Label(fm_left_top)
         self.panel_img.grid(row=1, column=0)
-
+        """
 
 
 # 実行
