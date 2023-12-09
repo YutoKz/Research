@@ -229,7 +229,7 @@ def hough_transform_CSD(
     upper_threshold: int = 10000000,
     lower_threshold_interdot: int = None,
     upper_threshold_interdot: int = None,
-    voltage_per_pixel: float = 1.0,
+    voltage_per_pixel: float = 1.0,         # TODO: 縦横かえれるように
     rho_res: float = 0.5,
     theta_res: float = np.pi / 180,
 ) -> None:
