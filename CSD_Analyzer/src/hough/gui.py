@@ -154,12 +154,19 @@ class Application(tk.Frame):
         self.tree_csv.heading("intercept", text="intercept")
         self.tree_csv.heading("votes",     text="votes")
         ## spinbox
-        ### enter to change value
+        ### enter/focusout to change value
+        self.spinbox_individual.bind                ('<Return>', self.individual_changed)
         self.spinbox_lower_threshold.bind           ('<Return>', self.lower_threshold_changed)
         self.spinbox_upper_threshold.bind           ('<Return>', self.upper_threshold_changed)       
         self.spinbox_lower_threshold_interdot.bind  ('<Return>', self.lower_threshold_interdot_changed)   
         self.spinbox_upper_threshold_interdot.bind  ('<Return>', self.upper_threshold_interdot_changed)   
         self.spinbox_voltage_per_pixel.bind         ('<Return>', self.voltage_per_pixel_changed)
+        self.spinbox_individual.bind                ('<FocusOut>', self.individual_changed)
+        self.spinbox_lower_threshold.bind           ('<FocusOut>', self.lower_threshold_changed)
+        self.spinbox_upper_threshold.bind           ('<FocusOut>', self.upper_threshold_changed)       
+        self.spinbox_lower_threshold_interdot.bind  ('<FocusOut>', self.lower_threshold_interdot_changed)   
+        self.spinbox_upper_threshold_interdot.bind  ('<FocusOut>', self.upper_threshold_interdot_changed)   
+        self.spinbox_voltage_per_pixel.bind         ('<FocusOut>', self.voltage_per_pixel_changed)
         ### set initial value
         self.spinbox_lower_threshold.delete             (0, tk.END)         
         self.spinbox_upper_threshold.delete             (0, tk.END)         
@@ -171,9 +178,6 @@ class Application(tk.Frame):
         self.spinbox_lower_threshold_interdot.insert    (0, "0")
         self.spinbox_upper_threshold_interdot.insert    (0, "10000")
         self.spinbox_voltage_per_pixel.insert           (0, "1.0") 
-        ## scrolledtext
-        self.scrolledtext_output.insert(tk.END, "Num of Detected Lines\n| - \n| - \n| -")
-        self.scrolledtext_output.configure(state=tk.DISABLED)
 
 
 
@@ -403,12 +407,38 @@ class Application(tk.Frame):
         self.spinbox_upper_threshold.configure              (from_=vote_min, to=vote_max)
         self.spinbox_upper_threshold_interdot.configure     (from_=vote_min, to=vote_max)
             
+        """
+            現在のパラメータ
+        """
+        # 結果を出力
+        self.scrolledtext_output.delete("1.0", tk.END)
+        self.scrolledtext_output.configure(state="normal")
+        self.scrolledtext_output.insert(
+            tk.END, 
+            f"Num of Detected Lines\n| - Horizontal: {self.num_of_horizontal_lines}\n| - Interdot:   {self.num_of_interdot_lines}\n| - Vertical:   {self.num_of_vertical_lines}\n\n"
+        )
+        self.scrolledtext_output.insert(
+            tk.END, 
+            f"Parameters\n| - Method:          {self.method}\n| - Edge extraction: {self.edge_extraction}\n| - Thinning:        {self.thinning}\n"
+        )
+        self.scrolledtext_output.insert(
+            tk.END, 
+            f"| - Threshold\n\t| - Lower threshold: {self.lower_threshold}\n\t| - Upper threshold: {self.upper_threshold}\n"
+        )
+        if self.use_threshold_interdot:
+            self.scrolledtext_output.insert(
+                tk.END, 
+                f"| - Threshold (interdot)\n\t| - Lower threshold: {self.lower_threshold_interdot}\n\t| - Upper threshold: {self.upper_threshold_interdot}\n"
+            )
+        self.scrolledtext_output.insert(
+            tk.END, 
+            f"| - V / px: {self.voltage_per_pixel}\n"
+        )
+        self.scrolledtext_output.configure(state="disabled")
+        
         self.pack_grid()
 
 
-        """
-            検出した直線数 + 現在のパラメータ
-        """
 
 
 
