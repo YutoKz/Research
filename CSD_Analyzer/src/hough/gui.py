@@ -1,5 +1,5 @@
 import sys
-import os
+import os, shutil
 import numpy as np
 import cv2
 import tkinter as tk
@@ -30,6 +30,10 @@ class Application(tk.Frame):
         super().__init__(master)
         self.pack()
 
+        # prepare output folder
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+        os.mkdir(output_folder)
 
         # hough parameter
         self.method = "slope_intercept"
@@ -85,15 +89,21 @@ class Application(tk.Frame):
         self.label_h_i_v             = tk.Label      (self.fm_left_bottom_0, text="Horizontal / Interdot / Vertical")
         self.label_individual        = tk.Label      (self.fm_left_bottom_1, text="Individual Line")
         self.label_csv               = tk.Label      (self.fm_left_bottom_2, text="Line Parameter")
-        self.label_image_horizontal   = tk.Label      (self.fm_left_bottom_0)
-        self.label_image_interdot     = tk.Label      (self.fm_left_bottom_0)
-        self.label_image_vertical     = tk.Label      (self.fm_left_bottom_0)
+
+        options_h_i_v = ["Select Type", "horizontal", "interdot", "vertical"]
+        self.tkvar_h_i_v           = tk.StringVar()
+        self.tkvar_h_i_v.set(options_h_i_v[0])
+        self.optionmenu_h_i_v           = ttk.OptionMenu(self.fm_left_bottom_0, self.tkvar_h_i_v, *options_h_i_v, command=self.h_i_v_selected)
+        self.label_image_h_i_v       = tk.Label      (self.fm_left_bottom_0)
         self.label_image_individual   = tk.Label      (self.fm_left_bottom_1)
+
+        self.spinbox_individual = tk.Spinbox(self.fm_left_bottom_1, width=5, from_=0, to=0, increment=1,       command=self.individual_changed)
+
         self.tree_csv           = ttk.Treeview  (self.fm_left_bottom_2)
         ## right
         ### select input filepath
         self.browse_button                   = tk.Button(self.fm_right_0, text="Browse", command=self.browse_file)
-        self.label_inputpath                 = tk.Label(self.fm_right_0, text="Select input filepath", width=30)
+        self.label_inputpath                 = tk.Label(self.fm_right_0, text="<- Select input filepath", width=30)
         ### change parameters of Hough
         self.label_method                    = tk.Label(self.fm_right_1, text="Method")
         self.label_edge_extraction           = tk.Label(self.fm_right_1, text="Edge extraction")
@@ -101,8 +111,8 @@ class Application(tk.Frame):
         self.label_lower_threshold           = tk.Label(self.fm_right_1, text="Lower threshold")
         self.label_upper_threshold           = tk.Label(self.fm_right_1, text="Upper threshold")
         self.label_threshold_interdot        = tk.Label(self.fm_right_1, text="Use unique threshold for Interdot line") 
-        self.label_lower_threshold_interdot  = tk.Label(self.fm_right_1, text="Lower threshold for Interdot")
-        self.label_upper_threshold_interdot  = tk.Label(self.fm_right_1, text="Upper threshold for Interdot")
+        self.label_lower_threshold_interdot  = tk.Label(self.fm_right_1, text="Lower threshold for Interdot", fg="lightgray")
+        self.label_upper_threshold_interdot  = tk.Label(self.fm_right_1, text="Upper threshold for Interdot", fg="lightgray")
         self.label_voltage_per_pixel         = tk.Label(self.fm_right_1, text="V / px")
         options = [" ", "slope_intercept"]    # "slope" は抜いてある
         self.tkvar_method           = tk.StringVar()
@@ -116,11 +126,11 @@ class Application(tk.Frame):
         self.spinbox_upper_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_changed)
         self.tkvar_thereshold_interdot          = tk.BooleanVar()
         self.checkbox_threshold_interdot        = tk.Checkbutton(self.fm_right_1, text="Use?",  variable=self.tkvar_thereshold_interdot, command=self.threshold_interdot_checked)
-        self.spinbox_lower_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_interdot_changed)
-        self.spinbox_upper_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_interdot_changed)
+        self.spinbox_lower_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_interdot_changed, fg="lightgray")
+        self.spinbox_upper_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_interdot_changed, fg="lightgray")
         self.spinbox_voltage_per_pixel          = tk.Spinbox(self.fm_right_1, width=5, from_=0.0, to=10000, increment=0.001, command=self.voltage_per_pixel_changed, format="%.3f")   
         ### exec button
-        self.button_exec         = tk.Button(self.fm_right_2, text="Execute", command=        """hough_transform_CSD"""        )
+        self.button_exec         = tk.Button(self.fm_right_2, text="Execute", command=self.execute_pressed)
         self.scrolledtext_output = scrolledtext.ScrolledText(self.fm_right_2, wrap=tk.WORD, width=40, height=10)
         
         # pack / grid
@@ -187,21 +197,21 @@ class Application(tk.Frame):
         self.fm_right_1.pack        (side=tk.TOP, fill=tk.BOTH, expand=True)
         self.fm_right_2.pack        (side=tk.TOP, fill=tk.BOTH, expand=True)
         ## left top
-        self.label_original.pack    (side=tk.TOP,anchor=tk.N, fill=tk.BOTH, expand=False)
-        self.label_processed.pack   (side=tk.TOP, fill=tk.BOTH, expand=False)
-        self.label_rhotheta.pack    (side=tk.TOP, fill=tk.BOTH, expand=False)
+        self.label_original.pack    (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
+        self.label_processed.pack   (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
+        self.label_rhotheta.pack    (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
         self.label_image_original.pack    (side=tk.BOTTOM, fill=tk.BOTH, expand=False)
         self.label_image_processed.pack   (side=tk.BOTTOM, fill=tk.BOTH, expand=False)
         self.label_image_rhotheta.pack    (side=tk.BOTTOM, fill=tk.BOTH, expand=False)
         ## left bottom
-        self.label_h_i_v.pack       (side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.label_individual.pack  (side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.label_csv.pack         (side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.label_image_horizontal.pack  (side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        self.label_image_interdot.pack    (side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        self.label_image_vertical.pack    (side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        self.label_image_individual.pack  (side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        self.tree_csv.pack          (side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+        self.label_h_i_v.pack       (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
+        self.optionmenu_h_i_v.pack       (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
+        self.label_image_h_i_v.pack      (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
+        self.label_individual.pack  (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
+        self.spinbox_individual.pack(side=tk.TOP, anchor=tk.E, fill=tk.BOTH, expand=False)
+        self.label_image_individual.pack  (side=tk.TOP, fill=tk.BOTH, expand=False)
+        self.label_csv.pack         (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)        
+        self.tree_csv.pack          (side=tk.TOP, fill=tk.BOTH, expand=False)
         ## right
         self.browse_button.pack                     (side=tk.LEFT)
         self.label_inputpath.pack                   (side=tk.LEFT)
@@ -274,6 +284,28 @@ class Application(tk.Frame):
         else:
             self.label_inputpath.config(text="Select input filepath")
 
+    def h_i_v_selected(self, selected_value):
+        self.h_i_v = selected_value
+        print(self.h_i_v)
+        match self.h_i_v:
+            case "horizontal":
+                self.label_image_h_i_v.configure(image=self.horizontal_image)
+                self.spinbox_individual.configure(from_=0, to=self.num_of_horizontal_lines-1)
+                self.individual_image   = self.resized_image(output_folder + "/individual_line/horizontal/0.png")
+            case "interdot":
+                self.label_image_h_i_v.configure(image=self.interdot_image)
+                self.spinbox_individual.configure(from_=0, to=self.num_of_interdot_lines-1)
+                self.individual_image   = self.resized_image(output_folder + "/individual_line/interdot/0.png")
+            case "vertical":
+                self.label_image_h_i_v.configure(image=self.vertical_image)
+                self.spinbox_individual.configure(from_=0, to=self.num_of_vertical_lines-1)
+                self.individual_image   = self.resized_image(output_folder + "/individual_line/vertical/0.png")
+        self.spinbox_individual.delete(0, tk.END)   
+        self.spinbox_individual.insert(0, str(0)) 
+        self.individual_index = 0
+        self.label_image_individual.configure(image=self.individual_image)
+        self.pack_grid()
+
     def method_selected(self, selected_value):
         self.method = selected_value
         print(self.method)
@@ -289,6 +321,24 @@ class Application(tk.Frame):
     def threshold_interdot_checked(self):
         self.use_threshold_interdot = True if self.tkvar_thereshold_interdot.get() else False
         print(self.use_threshold_interdot)
+        if self.use_threshold_interdot:
+            self.label_lower_threshold_interdot.config(fg="black")
+            self.label_upper_threshold_interdot.config(fg="black")
+            self.spinbox_lower_threshold_interdot.config(fg="black")
+            self.spinbox_upper_threshold_interdot.config(fg="black")
+        else:
+            self.label_lower_threshold_interdot.config  (fg="lightgray")
+            self.label_upper_threshold_interdot.config  (fg="lightgray")
+            self.spinbox_lower_threshold_interdot.config(fg="lightgray")
+            self.spinbox_upper_threshold_interdot.config(fg="lightgray")
+
+    def individual_changed(self, event=None):
+        self.individual_index = int(self.spinbox_individual.get())
+        print(self.individual_index)
+        self.individual_image   = self.resized_image(output_folder + "/individual_line/" + self.h_i_v + "/"+ str(self.individual_index) + ".png")
+        self.label_image_individual.configure(image=self.individual_image)
+        self.pack_grid()
+
 
     def lower_threshold_changed(self, event=None):
         self.lower_threshold = int(self.spinbox_lower_threshold.get())
@@ -321,9 +371,45 @@ class Application(tk.Frame):
             lower_threshold_interdot=self.lower_threshold_interdot if self.use_threshold_interdot else None,
             upper_threshold_interdot=self.upper_threshold_interdot if self.use_threshold_interdot else None,
             voltage_per_pixel=self.voltage_per_pixel,
-            rho_res=self.rhores,
-            theta_res=self.thota_res,
+            rho_res=self.rho_res,
+            theta_res=self.theta_res,
         )
+
+        self.original_image     = self.resized_image(output_folder + "/original.png")
+        self.processed_image    = self.resized_image(output_folder + "/processed.png")
+        self.rhotheta_image     = self.resized_image(output_folder + "/rho_theta.png")
+        self.alltype_image      = self.resized_image(output_folder + "/detected_lines.png")
+        self.horizontal_image   = self.resized_image(output_folder + "/individual_line/horizontal.png")
+        self.interdot_image     = self.resized_image(output_folder + "/individual_line/interdot.png")
+        self.vertical_image     = self.resized_image(output_folder + "/individual_line/vertical.png")
+
+        self.label_image_original.configure     (image=self.original_image)
+        self.label_image_processed.configure    (image=self.processed_image)
+        self.label_image_rhotheta.configure     (image=self.rhotheta_image)
+        self.label_image_h_i_v.configure        (image=self.alltype_image)
+
+        # 各直線の本数を格納
+        self.num_of_horizontal_lines = len(os.listdir(output_folder + "/individual_line/horizontal"))
+        self.num_of_interdot_lines = len(os.listdir(output_folder + "/individual_line/interdot"))
+        self.num_of_vertical_lines = len(os.listdir(output_folder + "/individual_line/vertical"))
+
+        # threshold max/min　更新
+        tmp = cv2.imread(output_folder + "/processed.png", cv2.IMREAD_GRAYSCALE)
+        hough_array = hough_transform(tmp, self.rho_res, self.theta_res)
+        vote_max = np.max(hough_array)
+        vote_min = np.min(hough_array)
+        self.spinbox_lower_threshold.configure              (from_=vote_min, to=vote_max)
+        self.spinbox_lower_threshold_interdot.configure     (from_=vote_min, to=vote_max)
+        self.spinbox_upper_threshold.configure              (from_=vote_min, to=vote_max)
+        self.spinbox_upper_threshold_interdot.configure     (from_=vote_min, to=vote_max)
+            
+        self.pack_grid()
+
+
+        """
+            検出した直線数 + 現在のパラメータ
+        """
+
 
 
 
