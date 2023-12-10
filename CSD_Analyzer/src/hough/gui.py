@@ -57,7 +57,7 @@ class Application(tk.Frame):
     def create_widgets(self):
         # frame
         ## root
-        self.fm_root             = tk.Frame(root)
+        self.fm_root             = tk.Frame(root, bg="lightyellow")
         ## root <- left / right
         self.fm_left             = tk.Frame(self.fm_root, bg="lightgreen", padx=5)
         self.fm_right            = tk.Frame(self.fm_root, bg="lightblue", padx=5)
