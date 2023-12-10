@@ -261,10 +261,11 @@ def hough_transform_CSD(
     cv2.imwrite(output_folder + "/original.png", img)
     if edge_extraction:
         img = cv2.Canny(img, 50, 100)
-        cv2.imwrite(output_folder + "/original_edge.png", img)
+        #cv2.imwrite(output_folder + "/original_edge.png", img)
     if thinning:
         img = thin_binary_image(output_folder + "/original.png")
-        cv2.imwrite(output_folder + "/thinned.png", img)
+        #cv2.imwrite(output_folder + "/thinned.png", img)
+    cv2.imwrite(output_folder + "/processed.png", img)
     rgb_img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     height, width = img.shape[:2]
     img = np.array(img)
