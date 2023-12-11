@@ -68,7 +68,7 @@ def detect_line(
     # 結果の保存
     cv2.imwrite(output_folder + "/detected_lines.png", rgb_image)
     df = pd.DataFrame(lines_list, columns=["slope", "intercept"])
-    df.to_csv(output_folder + "/line_parapeters.csv", index=False)
+    df.to_csv(output_folder + "/line_parameters.csv", index=False)
 
 def detect_line_segment(
     filepath: str,
@@ -170,7 +170,7 @@ def detect_line_segment(
     cv2.imwrite(output_folder + "/individual_line/interdot.png", interdot_lines_image)
     cv2.imwrite(output_folder + "/individual_line/horizontal.png", horizontal_lines_image)
     df = pd.DataFrame(lines_list, columns=["index", "type", "slope", "intercept"])
-    df.sort_values(by=["type", "slope"]).to_csv(output_folder + "/line_parapeters.csv", index=False)
+    df.sort_values(by=["type", "slope"]).to_csv(output_folder + "/line_parameters.csv", index=False)
 
 def hough_transform(
     img,
@@ -346,7 +346,7 @@ def hough_transform_CSD(
             print("Num of Lines")
             print(f"|- Vertical:   {peaks[0].shape[1]}\n|- Interdot:   {peaks[1].shape[1]}\n|- Horizontal: {peaks[2].shape[1]}")
             df = pd.DataFrame(lines_list, columns=["index", "type", "slope", "intercept", "votes"])
-            df.sort_values(by=["type", "slope"]).to_csv(output_folder + "/line_parapeters.csv", index=False)
+            df.sort_values(by=["type", "slope"]).to_csv(output_folder + "/line_parameters.csv", index=False)
 
         case "slope":
             # 目標: 傾きを３種類求める
