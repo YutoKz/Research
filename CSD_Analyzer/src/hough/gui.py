@@ -101,7 +101,11 @@ class Application(tk.Frame):
         ###
         self.label_image_h_i_v       = tk.Label      (self.fm_left_bottom_0)
         self.label_image_individual   = tk.Label      (self.fm_left_bottom_1)
-        self.spinbox_individual = tk.Spinbox(self.fm_left_bottom_1, width=5, from_=0, to=0, increment=1,       command=self.individual_changed)
+
+
+        #self.spinbox_individual = tk.Spinbox(self.fm_left_bottom_1, width=5, from_=0, to=0, increment=1,       command=self.individual_changed)
+
+
         self.tree_csv           = ttk.Treeview  (self.fm_left_bottom_2)
         ## right
         ### select input filepath
@@ -164,13 +168,13 @@ class Application(tk.Frame):
         self.tree_csv.heading("votes",     text="votes")
         ## spinbox
         ### enter/focusout to change value
-        self.spinbox_individual.bind                ('<Return>', self.individual_changed)
+        #self.spinbox_individual.bind                ('<Return>', self.individual_changed)
         self.spinbox_lower_threshold.bind           ('<Return>', self.lower_threshold_changed)
         self.spinbox_upper_threshold.bind           ('<Return>', self.upper_threshold_changed)       
         self.spinbox_lower_threshold_interdot.bind  ('<Return>', self.lower_threshold_interdot_changed)   
         self.spinbox_upper_threshold_interdot.bind  ('<Return>', self.upper_threshold_interdot_changed)   
         self.spinbox_voltage_per_pixel.bind         ('<Return>', self.voltage_per_pixel_changed)
-        self.spinbox_individual.bind                ('<FocusOut>', self.individual_changed)
+        #self.spinbox_individual.bind                ('<FocusOut>', self.individual_changed)
         self.spinbox_lower_threshold.bind           ('<FocusOut>', self.lower_threshold_changed)
         self.spinbox_upper_threshold.bind           ('<FocusOut>', self.upper_threshold_changed)       
         self.spinbox_lower_threshold_interdot.bind  ('<FocusOut>', self.lower_threshold_interdot_changed)   
@@ -232,8 +236,8 @@ class Application(tk.Frame):
         self.optionmenu_h_i_v.pack       (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
         self.label_image_h_i_v.pack      (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
         self.label_individual.pack  (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
-        self.spinbox_individual.pack(side=tk.TOP, anchor=tk.E, fill=tk.BOTH, expand=False)
-        self.label_image_individual.pack  (side=tk.TOP, fill=tk.BOTH, expand=False)
+                        #self.spinbox_individual.pack(side=tk.TOP, anchor=tk.E, fill=tk.BOTH, expand=False)
+        self.label_image_individual.pack  (side=tk.BOTTOM, fill=tk.BOTH, expand=False)
         self.label_csv.pack         (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)        
         self.tree_csv.pack          (side=tk.TOP, fill=tk.Y, expand=True)
         ## right
@@ -259,6 +263,10 @@ class Application(tk.Frame):
         self.spinbox_voltage_per_pixel.grid         (row=8, column=1, sticky=tk.W)
         self.button_exec.pack                       (anchor="center", fill=tk.X, expand=True, padx=30, pady=15)
         self.scrolledtext_output.pack               (anchor="ne", fill=tk.X, expand=True)
+
+
+        self.tree_csv.bind("<<TreeviewSelect>>", self.individual_selected)
+
 
     def browse_file(self):
         # prepare output folder
@@ -332,20 +340,20 @@ class Application(tk.Frame):
         match self.h_i_v:
             case "horizontal":
                 self.label_image_h_i_v.configure(image=self.horizontal_image)
-                self.spinbox_individual.configure(from_=0, to=self.num_of_horizontal_lines-1)
-                self.individual_image   = self.resized_image(output_folder + "/individual_line/horizontal/0.png")
+                #self.spinbox_individual.configure(from_=0, to=self.num_of_horizontal_lines-1)
+                #self.individual_image   = self.resized_image(output_folder + "/individual_line/horizontal/0.png")
             case "interdot":
                 self.label_image_h_i_v.configure(image=self.interdot_image)
-                self.spinbox_individual.configure(from_=0, to=self.num_of_interdot_lines-1)
-                self.individual_image   = self.resized_image(output_folder + "/individual_line/interdot/0.png")
+                #self.spinbox_individual.configure(from_=0, to=self.num_of_interdot_lines-1)
+                #self.individual_image   = self.resized_image(output_folder + "/individual_line/interdot/0.png")
             case "vertical":
                 self.label_image_h_i_v.configure(image=self.vertical_image)
-                self.spinbox_individual.configure(from_=0, to=self.num_of_vertical_lines-1)
-                self.individual_image   = self.resized_image(output_folder + "/individual_line/vertical/0.png")
-        self.label_image_individual.configure(image=self.individual_image)
-        self.spinbox_individual.delete(0, tk.END)   
-        self.spinbox_individual.insert(0, str(0)) 
-        self.individual_index = 0
+                #self.spinbox_individual.configure(from_=0, to=self.num_of_vertical_lines-1)
+                #self.individual_image   = self.resized_image(output_folder + "/individual_line/vertical/0.png")
+        #self.label_image_individual.configure(image=self.individual_image)
+        #self.spinbox_individual.delete(0, tk.END)   
+        #self.spinbox_individual.insert(0, str(0)) 
+        #self.individual_index = 0
         
         self.pack_grid()
 
@@ -432,13 +440,20 @@ class Application(tk.Frame):
             self.spinbox_lower_threshold_interdot.config(fg="lightgray")
             self.spinbox_upper_threshold_interdot.config(fg="lightgray")
 
-    def individual_changed(self, event=None):
-        self.individual_index = int(self.spinbox_individual.get())
+    def individual_selected(self, event=None):
+        """
+        self.individual_index = int(#self.spinbox_individual.get())
         print(self.individual_index)
         self.individual_image   = self.resized_image(output_folder + "/individual_line/" + self.h_i_v + "/"+ str(self.individual_index) + ".png")
         self.label_image_individual.configure(image=self.individual_image)
         self.pack_grid()
-
+        """
+        id = self.tree_csv.selection()[0]
+        self.individual_index = int(self.tree_csv.item(id, "values")[0])
+        self.individual_type = self.tree_csv.item(id, "values")[1]
+        self.individual_image = self.resized_image(output_folder + "/individual_line/" + self.individual_type + "/"+ str(self.individual_index) + ".png")
+        self.label_image_individual.configure(image=self.individual_image)
+        self.pack_grid()
 
     def lower_threshold_changed(self, event=None):
         self.lower_threshold = int(self.spinbox_lower_threshold.get())
