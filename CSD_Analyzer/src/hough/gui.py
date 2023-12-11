@@ -2,8 +2,10 @@ import sys
 import os, shutil
 import numpy as np
 import cv2
-import tkinter as tk
+from typing import Literal
+import csv
 
+import tkinter as tk
 import tkinter.ttk as ttk
 from PIL import Image, ImageTk
 from tkinter import messagebox as tkMessageBox
@@ -12,6 +14,8 @@ from tkinter import filedialog as filedialog
 from tkinter import scrolledtext
 
 from hough import hough_transform, hough_transform_CSD
+from utils import integrate_edges, thin_binary_image
+
 
 output_folder = "./data/output_hough"
 
@@ -89,16 +93,15 @@ class Application(tk.Frame):
         self.label_h_i_v             = tk.Label      (self.fm_left_bottom_0, text="Horizontal / Interdot / Vertical")
         self.label_individual        = tk.Label      (self.fm_left_bottom_1, text="Individual Line")
         self.label_csv               = tk.Label      (self.fm_left_bottom_2, text="Line Parameter")
-
-        options_h_i_v = ["Select Type", "horizontal", "interdot", "vertical"]
-        self.tkvar_h_i_v           = tk.StringVar()
-        self.tkvar_h_i_v.set(options_h_i_v[0])
-        self.optionmenu_h_i_v           = ttk.OptionMenu(self.fm_left_bottom_0, self.tkvar_h_i_v, *options_h_i_v, command=self.h_i_v_selected)
+        ###
+        self.options_h_i_v                   = ["Select Type", "horizontal", "interdot", "vertical"]
+        self.tkvar_h_i_v                = tk.StringVar()
+        self.tkvar_h_i_v.set(self.options_h_i_v[0])
+        self.optionmenu_h_i_v           = ttk.OptionMenu(self.fm_left_bottom_0, self.tkvar_h_i_v, *self.options_h_i_v, command=self.h_i_v_selected)
+        ###
         self.label_image_h_i_v       = tk.Label      (self.fm_left_bottom_0)
         self.label_image_individual   = tk.Label      (self.fm_left_bottom_1)
-
         self.spinbox_individual = tk.Spinbox(self.fm_left_bottom_1, width=5, from_=0, to=0, increment=1,       command=self.individual_changed)
-
         self.tree_csv           = ttk.Treeview  (self.fm_left_bottom_2)
         ## right
         ### select input filepath
@@ -106,7 +109,7 @@ class Application(tk.Frame):
         self.label_inputpath                 = tk.Label(self.fm_right_0, text="<- Select input filepath", width=30)
         ### change parameters of Hough
         self.label_method                    = tk.Label(self.fm_right_1, text="Method")
-        self.label_edge_extraction           = tk.Label(self.fm_right_1, text="Edge extraction")
+        #self.label_edge_extraction           = tk.Label(self.fm_right_1, text="Edge extraction")
         self.label_thinning                  = tk.Label(self.fm_right_1, text="Thinning")
         self.label_lower_threshold           = tk.Label(self.fm_right_1, text="Lower threshold")
         self.label_upper_threshold           = tk.Label(self.fm_right_1, text="Upper threshold")
@@ -114,18 +117,24 @@ class Application(tk.Frame):
         self.label_lower_threshold_interdot  = tk.Label(self.fm_right_1, text="Lower threshold for Interdot", fg="lightgray")
         self.label_upper_threshold_interdot  = tk.Label(self.fm_right_1, text="Upper threshold for Interdot", fg="lightgray")
         self.label_voltage_per_pixel         = tk.Label(self.fm_right_1, text="V / px")
+        ####
         options = [" ", "slope_intercept"]    # "slope" は抜いてある
         self.tkvar_method           = tk.StringVar()
         self.tkvar_method.set(options[0])
         self.optionmenu_method           = ttk.OptionMenu(self.fm_right_1, self.tkvar_method, *options, command=self.method_selected)
-        self.tkvar_edge_extraction  = tk.BooleanVar()
-        self.checkbox_edge_extraction    = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_edge_extraction, command=self.edge_extraction_checked)
-        self.tkvar_thinning         = tk.BooleanVar()
-        self.checkbox_thinning                  = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_thinning, command=self.thinning_checked)
+        ####
+        #self.tkvar_edge_extraction              = tk.BooleanVar()
+        #self.checkbox_edge_extraction           = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_edge_extraction,  command=self.processing_checked)
+        ####
+        self.tkvar_thinning                     = tk.BooleanVar()
+        self.checkbox_thinning                  = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_thinning,         command=self.processing_checked)
+        ####
         self.spinbox_lower_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_changed)
         self.spinbox_upper_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_changed)
+        ####
         self.tkvar_thereshold_interdot          = tk.BooleanVar()
         self.checkbox_threshold_interdot        = tk.Checkbutton(self.fm_right_1, text="Use?",  variable=self.tkvar_thereshold_interdot, command=self.threshold_interdot_checked)
+        ####
         self.spinbox_lower_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_interdot_changed, fg="lightgray")
         self.spinbox_upper_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_interdot_changed, fg="lightgray")
         self.spinbox_voltage_per_pixel          = tk.Spinbox(self.fm_right_1, width=5, from_=0.0, to=10000, increment=0.001, command=self.voltage_per_pixel_changed, format="%.3f")   
@@ -142,11 +151,11 @@ class Application(tk.Frame):
         self.tree_csv["show"] = "headings"
         self.tree_csv["columns"] = ("index","type","slope","intercept","votes")
         ### header width
-        self.tree_csv.column("index",       width=10, anchor='e')
-        self.tree_csv.column("type",        width=10, anchor='center')
-        self.tree_csv.column("slope",       width=10, anchor='center')
-        self.tree_csv.column("intercept",   width=10, anchor='center')
-        self.tree_csv.column("votes",       width=10, anchor='center')
+        self.tree_csv.column("index",       width=100, anchor='e')
+        self.tree_csv.column("type",        width=100, anchor='center')
+        self.tree_csv.column("slope",       width=100, anchor='center')
+        self.tree_csv.column("intercept",   width=100, anchor='center')
+        self.tree_csv.column("votes",       width=100, anchor='center')
         ### header text
         self.tree_csv.heading("index",     text="index")
         self.tree_csv.heading("type",      text="type")
@@ -178,11 +187,22 @@ class Application(tk.Frame):
         self.spinbox_lower_threshold_interdot.insert    (0, "0")
         self.spinbox_upper_threshold_interdot.insert    (0, "10000")
         self.spinbox_voltage_per_pixel.insert           (0, "1.0") 
+        ## parameters
+        self.configure_state(frame=self.fm_right_1, state="disabled")
+        self.configure_state(frame=self.fm_right_2, state="disabled")
 
 
 
 
-    
+    def configure_state(
+        self, 
+        frame: tk.Frame, 
+        state: Literal["normal", "disabled"], 
+    ):
+        """frame内のCheckbutton, Spinbox, """
+        for widget in frame.winfo_children():
+            if isinstance(widget, (ttk.OptionMenu, tk.Checkbutton, tk.Spinbox, tk.Button)):
+                widget.config(state=state)
 
     def pack_grid(self):
         ## root 
@@ -215,12 +235,12 @@ class Application(tk.Frame):
         self.spinbox_individual.pack(side=tk.TOP, anchor=tk.E, fill=tk.BOTH, expand=False)
         self.label_image_individual.pack  (side=tk.TOP, fill=tk.BOTH, expand=False)
         self.label_csv.pack         (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)        
-        self.tree_csv.pack          (side=tk.TOP, fill=tk.BOTH, expand=False)
+        self.tree_csv.pack          (side=tk.TOP, fill=tk.Y, expand=True)
         ## right
         self.browse_button.pack                     (side=tk.LEFT)
         self.label_inputpath.pack                   (side=tk.LEFT)
         self.label_method.grid                      (row=0, column=0, sticky=tk.E, padx=5, pady=10)
-        self.label_edge_extraction.grid             (row=1, column=0, sticky=tk.E, padx=5, pady=10)
+        #self.label_edge_extraction.grid             (row=1, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_thinning.grid                    (row=2, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_lower_threshold.grid             (row=3, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_upper_threshold.grid             (row=4, column=0, sticky=tk.E, padx=5, pady=10)
@@ -229,7 +249,7 @@ class Application(tk.Frame):
         self.label_upper_threshold_interdot.grid    (row=7, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_voltage_per_pixel.grid           (row=8, column=0, sticky=tk.E, padx=5, pady=10)
         self.optionmenu_method.grid                 (row=0, column=1, sticky=tk.W)       
-        self.checkbox_edge_extraction.grid          (row=1, column=1, sticky=tk.W)
+        #self.checkbox_edge_extraction.grid          (row=1, column=1, sticky=tk.W)
         self.checkbox_thinning.grid                 (row=2, column=1, sticky=tk.W)
         self.spinbox_lower_threshold.grid           (row=3, column=1, sticky=tk.W)
         self.spinbox_upper_threshold.grid           (row=4, column=1, sticky=tk.W)
@@ -241,6 +261,10 @@ class Application(tk.Frame):
         self.scrolledtext_output.pack               (anchor="ne", fill=tk.X, expand=True)
 
     def browse_file(self):
+        # prepare output folder
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+        os.mkdir(output_folder)
         selected_filepath = filedialog.askopenfilename(filetypes=[("png", "*.png")])
         if selected_filepath:
             base_dir = os.getcwd()
@@ -251,14 +275,23 @@ class Application(tk.Frame):
             self.input_filepath = selected_filepath
             
             # show/set original and rhotheta
-            self.original_image = self.resized_image(selected_filepath)
             tmp = cv2.imread(selected_filepath, cv2.IMREAD_GRAYSCALE)
+            cv2.imwrite(output_folder + "/original.png", tmp)
             hough_array = hough_transform(tmp, self.rho_res, self.theta_res)
+            self.original_image = self.resized_image(selected_filepath)
             self.rhotheta_image = self.resized_image(output_folder+"/rho_theta.png")
             self.label_image_original.configure(image=self.original_image)
             self.label_image_processed.configure(image=self.original_image)
             self.label_image_rhotheta.configure(image=self.rhotheta_image)
+            
+            # clear former output
+            self.tkvar_h_i_v.set(self.options_h_i_v[0])
+            self.label_image_h_i_v.configure(image=self.original_image)
+            self.individual_image = self.original_image
+            self.label_image_individual.configure(image=self.individual_image)
+
             self.pack_grid()
+
             
             # hough threshold
             vote_max = np.max(hough_array)
@@ -266,6 +299,11 @@ class Application(tk.Frame):
             ## variable
             self.lower_threshold = self.lower_threshold_interdot = vote_min
             self.upper_threshold = self.upper_threshold_interdot = vote_max
+            ## configure state
+            self.configure_state(frame=self.fm_right_1, state="normal")
+            self.configure_state(frame=self.fm_right_2, state="normal")
+            self.configure_state(frame=self.fm_left_bottom_0, state="disabled")
+            self.configure_state(frame=self.fm_left_bottom_1, state="disabled")
             ## spinbox
             ### change from_/to
             self.spinbox_lower_threshold.configure              (from_=vote_min, to=vote_max)
@@ -304,16 +342,70 @@ class Application(tk.Frame):
                 self.label_image_h_i_v.configure(image=self.vertical_image)
                 self.spinbox_individual.configure(from_=0, to=self.num_of_vertical_lines-1)
                 self.individual_image   = self.resized_image(output_folder + "/individual_line/vertical/0.png")
+        self.label_image_individual.configure(image=self.individual_image)
         self.spinbox_individual.delete(0, tk.END)   
         self.spinbox_individual.insert(0, str(0)) 
         self.individual_index = 0
-        self.label_image_individual.configure(image=self.individual_image)
+        
         self.pack_grid()
 
     def method_selected(self, selected_value):
         self.method = selected_value
         print(self.method)
-    
+
+
+
+    def processing_checked(self):
+        #self.edge_extraction    = True if self.tkvar_edge_extraction.get()  else False
+        self.thinning           = True if self.tkvar_thinning.get()         else False
+        print(self.edge_extraction)
+        print(self.thinning)
+
+        # 元画像を読み込み、加工、保存
+        img = cv2.imread(self.input_filepath, cv2.IMREAD_GRAYSCALE)
+        cv2.imwrite(output_folder + "/original.png", img)
+        #if self.edge_extraction:
+        #    img = cv2.Canny(img, 50, 100)
+        if self.thinning:
+            img = thin_binary_image(output_folder + "/original.png")
+        cv2.imwrite(output_folder + "/processed.png", img)
+
+        # show/set original and processed and rhotheta
+        tmp = cv2.imread(output_folder + "/processed.png", cv2.IMREAD_GRAYSCALE)
+        hough_array = hough_transform(tmp, self.rho_res, self.theta_res)
+
+        self.original_image = self.resized_image    (output_folder + "/original.png")
+        self.processed_image = self.resized_image   (output_folder + "/processed.png")
+        self.rhotheta_image = self.resized_image    (output_folder + "/rho_theta.png")
+
+        self.label_image_original.configure         (image=self.original_image)
+        self.label_image_processed.configure        (image=self.processed_image)
+        self.label_image_rhotheta.configure         (image=self.rhotheta_image)
+        self.pack_grid()
+        
+        # hough threshold
+        vote_max = np.max(hough_array)
+        vote_min = np.min(hough_array)
+        ## variable
+        self.lower_threshold = self.lower_threshold_interdot = vote_min
+        self.upper_threshold = self.upper_threshold_interdot = vote_max
+        ## spinbox
+        ### change from_/to
+        self.spinbox_lower_threshold.configure              (from_=vote_min, to=vote_max)
+        self.spinbox_lower_threshold_interdot.configure     (from_=vote_min, to=vote_max)
+        self.spinbox_upper_threshold.configure              (from_=vote_min, to=vote_max)
+        self.spinbox_upper_threshold_interdot.configure     (from_=vote_min, to=vote_max)
+        ### initialize 
+        self.spinbox_lower_threshold.delete             (0, tk.END)         
+        self.spinbox_upper_threshold.delete             (0, tk.END)         
+        self.spinbox_lower_threshold_interdot.delete    (0, tk.END)
+        self.spinbox_upper_threshold_interdot.delete    (0, tk.END)   
+        self.spinbox_lower_threshold.insert             (0, str(vote_min))         
+        self.spinbox_upper_threshold.insert             (0, str(vote_max))         
+        self.spinbox_lower_threshold_interdot.insert    (0, str(vote_min))
+        self.spinbox_upper_threshold_interdot.insert    (0, str(vote_max))
+
+    """
     def edge_extraction_checked(self):
         self.edge_extraction = True if self.tkvar_edge_extraction.get() else False
         print(self.edge_extraction)
@@ -321,6 +413,10 @@ class Application(tk.Frame):
     def thinning_checked(self):
         self.thinning = True if self.tkvar_thinning.get() else False
         print(self.thinning)
+    """
+
+
+
 
     def threshold_interdot_checked(self):
         self.use_threshold_interdot = True if self.tkvar_thereshold_interdot.get() else False
@@ -379,6 +475,7 @@ class Application(tk.Frame):
             theta_res=self.theta_res,
         )
 
+        # image
         self.original_image     = self.resized_image(output_folder + "/original.png")
         self.processed_image    = self.resized_image(output_folder + "/processed.png")
         self.rhotheta_image     = self.resized_image(output_folder + "/rho_theta.png")
@@ -391,6 +488,18 @@ class Application(tk.Frame):
         self.label_image_processed.configure    (image=self.processed_image)
         self.label_image_rhotheta.configure     (image=self.rhotheta_image)
         self.label_image_h_i_v.configure        (image=self.alltype_image)
+        self.individual_image = self.original_image
+        self.label_image_individual.configure   (image=self.individual_image)
+
+        self.configure_state(frame=self.fm_left_bottom_0, state="normal")
+        self.configure_state(frame=self.fm_left_bottom_1, state="normal")
+        self.tkvar_h_i_v.set(self.options_h_i_v[0])
+
+        # csv
+        with open(output_folder + "/line_parameters.csv", newline='', encoding='utf-8') as csv_file: 
+            csv_reader = csv.reader(csv_file)
+            for i, row in enumerate(csv_reader, start=1):
+                self.tree_csv.insert(parent='', index='end', iid=i, text=str(i), values=row)
 
         # 各直線の本数を格納
         self.num_of_horizontal_lines = len(os.listdir(output_folder + "/individual_line/horizontal"))
@@ -411,15 +520,15 @@ class Application(tk.Frame):
             現在のパラメータ
         """
         # 結果を出力
-        self.scrolledtext_output.delete("1.0", tk.END)
         self.scrolledtext_output.configure(state="normal")
+        self.scrolledtext_output.delete("1.0", tk.END)
         self.scrolledtext_output.insert(
             tk.END, 
             f"Num of Detected Lines\n| - Horizontal: {self.num_of_horizontal_lines}\n| - Interdot:   {self.num_of_interdot_lines}\n| - Vertical:   {self.num_of_vertical_lines}\n\n"
         )
         self.scrolledtext_output.insert(
             tk.END, 
-            f"Parameters\n| - Method:          {self.method}\n| - Edge extraction: {self.edge_extraction}\n| - Thinning:        {self.thinning}\n"
+            f"Parameters\n| - Method:   {self.method}\n| - Thinning: {self.thinning}\n"
         )
         self.scrolledtext_output.insert(
             tk.END, 
@@ -437,11 +546,6 @@ class Application(tk.Frame):
         self.scrolledtext_output.configure(state="disabled")
         
         self.pack_grid()
-
-
-
-
-
 
     def resized_image(self, filepath):
         image = Image.open(filepath)
