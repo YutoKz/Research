@@ -5,6 +5,8 @@
 *.npy
 detail.txt
 *Zone.Identifier
+Senpai/
+CSD_Simulater/
 
 
 # Byte-compiled / optimized / DLL files
