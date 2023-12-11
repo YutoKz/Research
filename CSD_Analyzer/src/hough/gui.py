@@ -496,6 +496,7 @@ class Application(tk.Frame):
         self.tkvar_h_i_v.set(self.options_h_i_v[0])
 
         # csv
+        self.tree_csv.delete(*self.tree_csv.get_children())
         with open(output_folder + "/line_parameters.csv", newline='', encoding='utf-8') as csv_file: 
             csv_reader = csv.reader(csv_file)
             for i, row in enumerate(csv_reader, start=1):
