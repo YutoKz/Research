@@ -61,29 +61,29 @@ class Application(tk.Frame):
     def create_widgets(self):
         # frame
         ## root
-        self.fm_root             = tk.Frame(root, bg="lightyellow")
-        ## root <- left / right
-        self.fm_left             = tk.Frame(self.fm_root, bg="lightgreen", padx=5)
-        self.fm_right            = tk.Frame(self.fm_root, bg="lightblue", padx=5)
-        ## left <- left top / left bottom
-        self.fm_left_top         = tk.Frame(self.fm_left, bg="lightgreen", padx=5)
-        self.fm_left_bottom      = tk.Frame(self.fm_left, bg="lightcoral", padx=5)
-        ## left top <- left top 0~2
-        self.fm_left_top_0       =  tk.Frame(self.fm_left_top, bg="lightgreen", padx=5)
-        self.fm_left_top_1       =  tk.Frame(self.fm_left_top, bg="lightcoral", padx=5)
-        self.fm_left_top_2       =  tk.Frame(self.fm_left_top, bg="lightgreen", padx=5)
+        self.fm_root             = tk.Frame(root,                   bg="lightyellow",           width=, height=)
+        ## root <- left / right 
+        self.fm_left             = tk.Frame(self.fm_root,           bg="lightyellow", padx=5)
+        self.fm_right            = tk.Frame(self.fm_root,           bg="lightblue", padx=5)
+        ## left <- left top / left bottom   
+        self.fm_left_top         = tk.Frame(self.fm_left,           bg="lightyellow", padx=5)
+        self.fm_left_bottom      = tk.Frame(self.fm_left,           bg="lightyellow", padx=5)
+        ## left top <- left top 0~2 
+        self.fm_left_top_0       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5)
+        self.fm_left_top_1       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5)
+        self.fm_left_top_2       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5)
         ## left bottom <- left bottom 0~2
-        self.fm_left_bottom_0    =  tk.Frame(self.fm_left_bottom, bg="lightgreen", padx=5)
-        self.fm_left_bottom_1    =  tk.Frame(self.fm_left_bottom, bg="lightcoral", padx=5)
-        self.fm_left_bottom_2    =  tk.Frame(self.fm_left_bottom, bg="lightgreen", padx=5)
+        self.fm_left_bottom_0    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5)
+        self.fm_left_bottom_1    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5)
+        self.fm_left_bottom_2    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5)
         ## right <- right 0~2
-        self.fm_right_0          =  tk.Frame(self.fm_right, bg="lightblue", padx=5)
-        self.fm_right_1          =  tk.Frame(self.fm_right, bg="lightblue", padx=5)
-        self.fm_right_2          =  tk.Frame(self.fm_right, bg="lightblue", padx=5)
+        self.fm_right_0          =  tk.Frame(self.fm_right,         bg="lightblue", padx=5)
+        self.fm_right_1          =  tk.Frame(self.fm_right,         bg="lightblue", padx=5)
+        self.fm_right_2          =  tk.Frame(self.fm_right,         bg="lightblue", padx=5)
         
         # widget
         ## left top
-        self.label_original          = tk.Label(self.fm_left_top_0, text="Input")
+        self.label_original          = tk.Label(self.fm_left_top_0, text="Original")
         self.label_processed         = tk.Label(self.fm_left_top_1, text="Processed")
         self.label_rhotheta          = tk.Label(self.fm_left_top_2, text="rho - theta")
         self.label_image_original     = tk.Label(self.fm_left_top_0)
@@ -110,7 +110,7 @@ class Application(tk.Frame):
         ## right
         ### select input filepath
         self.browse_button                   = tk.Button(self.fm_right_0, text="Browse", command=self.browse_file)
-        self.label_inputpath                 = tk.Label(self.fm_right_0, text="<- Select input filepath", width=30)
+        self.label_inputpath                 = tk.Label(self.fm_right_0, text="<- Select input", width=30)
         ### change parameters of Hough
         self.label_method                    = tk.Label(self.fm_right_1, text="Method")
         #self.label_edge_extraction           = tk.Label(self.fm_right_1, text="Edge extraction")
@@ -118,11 +118,11 @@ class Application(tk.Frame):
         self.label_lower_threshold           = tk.Label(self.fm_right_1, text="Lower threshold")
         self.label_upper_threshold           = tk.Label(self.fm_right_1, text="Upper threshold")
         self.label_threshold_interdot        = tk.Label(self.fm_right_1, text="Use unique threshold for Interdot line") 
-        self.label_lower_threshold_interdot  = tk.Label(self.fm_right_1, text="Lower threshold for Interdot", fg="lightgray")
-        self.label_upper_threshold_interdot  = tk.Label(self.fm_right_1, text="Upper threshold for Interdot", fg="lightgray")
+        self.label_lower_threshold_interdot  = tk.Label(self.fm_right_1, text="Lower threshold for Interdot (0 ~ 90)", fg="lightgray")
+        self.label_upper_threshold_interdot  = tk.Label(self.fm_right_1, text="Upper threshold for Interdot (0 ~ 90)", fg="lightgray")
         self.label_voltage_per_pixel         = tk.Label(self.fm_right_1, text="V / px")
         ####
-        options = [" ", "slope_intercept"]    # "slope" は抜いてある
+        options = ["                         ", "slope_intercept"]    # "slope" は抜いてある
         self.tkvar_method           = tk.StringVar()
         self.tkvar_method.set(options[0])
         self.optionmenu_method           = ttk.OptionMenu(self.fm_right_1, self.tkvar_method, *options, command=self.method_selected)
@@ -192,9 +192,9 @@ class Application(tk.Frame):
         self.spinbox_upper_threshold_interdot.insert    (0, "10000")
         self.spinbox_voltage_per_pixel.insert           (0, "1.0") 
         ## parameters
+        self.configure_state(frame=self.fm_left_bottom_0, state="disabled")
         self.configure_state(frame=self.fm_right_1, state="disabled")
         self.configure_state(frame=self.fm_right_2, state="disabled")
-
 
 
 
@@ -311,7 +311,6 @@ class Application(tk.Frame):
             self.configure_state(frame=self.fm_right_1, state="normal")
             self.configure_state(frame=self.fm_right_2, state="normal")
             self.configure_state(frame=self.fm_left_bottom_0, state="disabled")
-            self.configure_state(frame=self.fm_left_bottom_1, state="disabled")
             ## spinbox
             ### change from_/to
             self.spinbox_lower_threshold.configure              (from_=vote_min, to=vote_max)
@@ -465,7 +464,7 @@ class Application(tk.Frame):
 
     def lower_threshold_interdot_changed(self, event=None):
         self.lower_threshold_interdot = int(self.spinbox_lower_threshold_interdot.get())
-        print(self.lower_threshold_interdot)
+        print(self.lower_threshold_interdot)  
 
     def upper_threshold_interdot_changed(self, event=None):
         self.upper_threshold_interdot = int(self.spinbox_upper_threshold_interdot.get())
@@ -507,7 +506,6 @@ class Application(tk.Frame):
         self.label_image_individual.configure   (image=self.individual_image)
 
         self.configure_state(frame=self.fm_left_bottom_0, state="normal")
-        self.configure_state(frame=self.fm_left_bottom_1, state="normal")
         self.tkvar_h_i_v.set(self.options_h_i_v[0])
 
         # csv
