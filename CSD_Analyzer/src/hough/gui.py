@@ -81,39 +81,71 @@ class Application(tk.Frame):
         self.fm_right_1          =  tk.Frame(self.fm_right,         bg="lightblue",   padx=5,   )
         self.fm_right_2          =  tk.Frame(self.fm_right,         bg="lightblue",   padx=5,   )
 
+        """
         # widget
         ## left top
+        #self.label_original          = tk.Label(self.fm_left_top_0, text="Original")
+        #self.label_processed         = tk.Label(self.fm_left_top_1, text="Processed")
+        #self.label_rhotheta          = tk.Label(self.fm_left_top_2, text="rho - theta")
+        #self.label_image_original     = tk.Label(self.fm_left_top_0)
+        #self.label_image_processed    = tk.Label(self.fm_left_top_1)
+        #self.label_image_rhotheta     = tk.Label(self.fm_left_top_2)
+        ## left bottom
+        #self.label_h_i_v             = tk.Label      (self.fm_left_bottom_0, text="Horizontal / Interdot / Vertical")
+        #self.label_individual        = tk.Label      (self.fm_left_bottom_1, text="Individual Line")
+        #self.label_csv               = tk.Label      (self.fm_left_bottom_2, text="Line Parameter")
+        #self.options_h_i_v                   = ["Select Type", "horizontal", "interdot", "vertical"]
+        #self.tkvar_h_i_v                = tk.StringVar()
+        #self.tkvar_h_i_v.set(self.options_h_i_v[0])
+        #self.optionmenu_h_i_v           = ttk.OptionMenu(self.fm_left_bottom_0, self.tkvar_h_i_v, *self.options_h_i_v, command=self.h_i_v_selected)
+        #self.label_image_h_i_v       = tk.Label      (self.fm_left_bottom_0)
+        #self.label_image_individual   = tk.Label      (self.fm_left_bottom_1)
+        #self.tree_csv           = ttk.Treeview  (self.fm_left_bottom_2)
+        ## right
+        ### select input filepath
+        #self.browse_button                   = tk.Button(self.fm_right_0, text="Browse", command=self.browse_file)
+        #self.label_inputpath                 = tk.Label(self.fm_right_0, text="<- Select input", width=30)
+        ### change parameters of Hough
+        #self.label_method                    = tk.Label(self.fm_right_1, text="Method")
+        #self.label_thinning                  = tk.Label(self.fm_right_1, text="Thinning")
+        #self.label_lower_threshold           = tk.Label(self.fm_right_1, text="Lower threshold")
+        #self.label_upper_threshold           = tk.Label(self.fm_right_1, text="Upper threshold")
+        #self.label_threshold_interdot        = tk.Label(self.fm_right_1, text="Use unique threshold for Interdot line") 
+        #self.label_lower_threshold_interdot  = tk.Label(self.fm_right_1, text="Lower threshold for Interdot (0 ~ 90)", fg="lightgray")
+        #self.label_upper_threshold_interdot  = tk.Label(self.fm_right_1, text="Upper threshold for Interdot (0 ~ 90)", fg="lightgray")
+        #self.label_voltage_per_pixel         = tk.Label(self.fm_right_1, text="V / px")
+        #options = ["                         ", "slope_intercept"]    # "slope" は抜いてある
+        #self.tkvar_method           = tk.StringVar()
+        #self.tkvar_method.set(options[0])
+        #self.optionmenu_method           = ttk.OptionMenu(self.fm_right_1, self.tkvar_method, *options, command=self.method_selected)
+        #self.tkvar_thinning                     = tk.BooleanVar()
+        #self.checkbox_thinning                  = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_thinning,         command=self.processing_checked)
+        self.spinbox_lower_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_changed)
+        self.spinbox_upper_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_changed)
+        #self.tkvar_thereshold_interdot          = tk.BooleanVar()
+        #self.checkbox_threshold_interdot        = tk.Checkbutton(self.fm_right_1, text="Use?",  variable=self.tkvar_thereshold_interdot, command=self.threshold_interdot_checked)
+        self.spinbox_lower_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_interdot_changed, fg="lightgray")
+        self.spinbox_upper_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_interdot_changed, fg="lightgray")
+        self.spinbox_voltage_per_pixel          = tk.Spinbox(self.fm_right_1, width=5, from_=0.0, to=10000, increment=0.001, command=self.voltage_per_pixel_changed, format="%.3f")   
+        ### exec button
+        #self.button_exec         = tk.Button(self.fm_right_2, text="Execute", command=self.execute_pressed)
+        self.scrolledtext_output = scrolledtext.ScrolledText(self.fm_right_2, wrap=tk.WORD, width=40, height=10)
+        """
+        # widget
+        ## Label
         self.label_original          = tk.Label(self.fm_left_top_0, text="Original")
         self.label_processed         = tk.Label(self.fm_left_top_1, text="Processed")
         self.label_rhotheta          = tk.Label(self.fm_left_top_2, text="rho - theta")
         self.label_image_original     = tk.Label(self.fm_left_top_0)
         self.label_image_processed    = tk.Label(self.fm_left_top_1)
         self.label_image_rhotheta     = tk.Label(self.fm_left_top_2)
-        ## left bottom
         self.label_h_i_v             = tk.Label      (self.fm_left_bottom_0, text="Horizontal / Interdot / Vertical")
         self.label_individual        = tk.Label      (self.fm_left_bottom_1, text="Individual Line")
         self.label_csv               = tk.Label      (self.fm_left_bottom_2, text="Line Parameter")
-        ###
-        self.options_h_i_v                   = ["Select Type", "horizontal", "interdot", "vertical"]
-        self.tkvar_h_i_v                = tk.StringVar()
-        self.tkvar_h_i_v.set(self.options_h_i_v[0])
-        self.optionmenu_h_i_v           = ttk.OptionMenu(self.fm_left_bottom_0, self.tkvar_h_i_v, *self.options_h_i_v, command=self.h_i_v_selected)
-        ###
         self.label_image_h_i_v       = tk.Label      (self.fm_left_bottom_0)
         self.label_image_individual   = tk.Label      (self.fm_left_bottom_1)
-
-
-        #self.spinbox_individual = tk.Spinbox(self.fm_left_bottom_1, width=5, from_=0, to=0, increment=1,       command=self.individual_changed)
-
-
-        self.tree_csv           = ttk.Treeview  (self.fm_left_bottom_2)
-        ## right
-        ### select input filepath
-        self.browse_button                   = tk.Button(self.fm_right_0, text="Browse", command=self.browse_file)
         self.label_inputpath                 = tk.Label(self.fm_right_0, text="<- Select input", width=30)
-        ### change parameters of Hough
         self.label_method                    = tk.Label(self.fm_right_1, text="Method")
-        #self.label_edge_extraction           = tk.Label(self.fm_right_1, text="Edge extraction")
         self.label_thinning                  = tk.Label(self.fm_right_1, text="Thinning")
         self.label_lower_threshold           = tk.Label(self.fm_right_1, text="Lower threshold")
         self.label_upper_threshold           = tk.Label(self.fm_right_1, text="Upper threshold")
@@ -121,31 +153,36 @@ class Application(tk.Frame):
         self.label_lower_threshold_interdot  = tk.Label(self.fm_right_1, text="Lower threshold for Interdot (0 ~ 90)", fg="lightgray")
         self.label_upper_threshold_interdot  = tk.Label(self.fm_right_1, text="Upper threshold for Interdot (0 ~ 90)", fg="lightgray")
         self.label_voltage_per_pixel         = tk.Label(self.fm_right_1, text="V / px")
-        ####
+        ## OptionMenu
+        self.options_h_i_v                   = ["Select Type", "horizontal", "interdot", "vertical"]
+        self.tkvar_h_i_v                = tk.StringVar()
+        self.tkvar_h_i_v.set(self.options_h_i_v[0])
+        self.optionmenu_h_i_v           = ttk.OptionMenu(self.fm_left_bottom_0, self.tkvar_h_i_v, *self.options_h_i_v, command=self.h_i_v_selected)
         options = ["                         ", "slope_intercept"]    # "slope" は抜いてある
         self.tkvar_method           = tk.StringVar()
         self.tkvar_method.set(options[0])
         self.optionmenu_method           = ttk.OptionMenu(self.fm_right_1, self.tkvar_method, *options, command=self.method_selected)
-        ####
-        #self.tkvar_edge_extraction              = tk.BooleanVar()
-        #self.checkbox_edge_extraction           = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_edge_extraction,  command=self.processing_checked)
-        ####
+        ## Button
+        self.browse_button                   = tk.Button(self.fm_right_0, text="Browse", command=self.browse_file)
+        self.button_exec         = tk.Button(self.fm_right_2, text="Execute", command=self.execute_pressed)
+        ## Treeview
+        self.tree_csv           = ttk.Treeview  (self.fm_left_bottom_2)
+        ## Checkbutton
         self.tkvar_thinning                     = tk.BooleanVar()
         self.checkbox_thinning                  = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_thinning,         command=self.processing_checked)
-        ####
-        self.spinbox_lower_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_changed)
-        self.spinbox_upper_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_changed)
-        ####
         self.tkvar_thereshold_interdot          = tk.BooleanVar()
         self.checkbox_threshold_interdot        = tk.Checkbutton(self.fm_right_1, text="Use?",  variable=self.tkvar_thereshold_interdot, command=self.threshold_interdot_checked)
-        ####
+        ## Spinbox
+        self.spinbox_lower_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_changed)
+        self.spinbox_upper_threshold            = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_changed)
         self.spinbox_lower_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.lower_threshold_interdot_changed, fg="lightgray")
         self.spinbox_upper_threshold_interdot   = tk.Spinbox(self.fm_right_1, width=5, from_=0, to=10000, increment=1,       command=self.upper_threshold_interdot_changed, fg="lightgray")
         self.spinbox_voltage_per_pixel          = tk.Spinbox(self.fm_right_1, width=5, from_=0.0, to=10000, increment=0.001, command=self.voltage_per_pixel_changed, format="%.3f")   
-        ### exec button
-        self.button_exec         = tk.Button(self.fm_right_2, text="Execute", command=self.execute_pressed)
+        ## ScrolledText
         self.scrolledtext_output = scrolledtext.ScrolledText(self.fm_right_2, wrap=tk.WORD, width=40, height=10)
-        
+
+
+
         # pack / grid
         self.pack_grid()
 
