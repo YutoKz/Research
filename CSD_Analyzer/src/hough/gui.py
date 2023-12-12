@@ -20,7 +20,7 @@ from utils import integrate_edges, thin_binary_image
 output_folder = "./data/output_hough"
 
 
-r_w = 300
+r_w = 400
 r_h = 600
 
 lt_w = 1000
@@ -61,26 +61,26 @@ class Application(tk.Frame):
     def create_widgets(self):
         # frame
         ## root
-        self.fm_root             = tk.Frame(root,                   bg="lightyellow",           width=, height=)
+        self.fm_root             = tk.Frame(root,                   bg="lightyellow",           )
         ## root <- left / right 
-        self.fm_left             = tk.Frame(self.fm_root,           bg="lightyellow", padx=5)
-        self.fm_right            = tk.Frame(self.fm_root,           bg="lightblue", padx=5)
-        ## left <- left top / left bottom   
-        self.fm_left_top         = tk.Frame(self.fm_left,           bg="lightyellow", padx=5)
-        self.fm_left_bottom      = tk.Frame(self.fm_left,           bg="lightyellow", padx=5)
-        ## left top <- left top 0~2 
-        self.fm_left_top_0       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5)
-        self.fm_left_top_1       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5)
-        self.fm_left_top_2       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5)
+        self.fm_left             = tk.Frame(self.fm_root,           bg="lightyellow", padx=5,   )
+        self.fm_right            = tk.Frame(self.fm_root,           bg="lightblue",   padx=5,   )
+        ## left <- left top / left bottom       
+        self.fm_left_top         = tk.Frame(self.fm_left,           bg="lightyellow", padx=5,   )
+        self.fm_left_bottom      = tk.Frame(self.fm_left,           bg="lightyellow", padx=5,   )
+        ## left top <- left top 0~2     
+        self.fm_left_top_0       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5,   )
+        self.fm_left_top_1       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5,   )
+        self.fm_left_top_2       =  tk.Frame(self.fm_left_top,      bg="lightyellow", padx=5,   )
         ## left bottom <- left bottom 0~2
-        self.fm_left_bottom_0    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5)
-        self.fm_left_bottom_1    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5)
-        self.fm_left_bottom_2    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5)
+        self.fm_left_bottom_0    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5,   )
+        self.fm_left_bottom_1    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5,   )
+        self.fm_left_bottom_2    =  tk.Frame(self.fm_left_bottom,   bg="lightyellow", padx=5,   )
         ## right <- right 0~2
-        self.fm_right_0          =  tk.Frame(self.fm_right,         bg="lightblue", padx=5)
-        self.fm_right_1          =  tk.Frame(self.fm_right,         bg="lightblue", padx=5)
-        self.fm_right_2          =  tk.Frame(self.fm_right,         bg="lightblue", padx=5)
-        
+        self.fm_right_0          =  tk.Frame(self.fm_right,         bg="lightblue",   padx=5,   )
+        self.fm_right_1          =  tk.Frame(self.fm_right,         bg="lightblue",   padx=5,   )
+        self.fm_right_2          =  tk.Frame(self.fm_right,         bg="lightblue",   padx=5,   )
+
         # widget
         ## left top
         self.label_original          = tk.Label(self.fm_left_top_0, text="Original")
@@ -212,7 +212,7 @@ class Application(tk.Frame):
         ## root 
         self.fm_root.pack           (fill=tk.BOTH,                  expand=False)
         self.fm_left.pack           (side=tk.LEFT, fill=tk.NONE,    expand=True)
-        self.fm_right.pack          (side=tk.RIGHT, fill=tk.NONE, expand=True)
+        self.fm_right.pack          (side=tk.RIGHT, fill=tk.Y, expand=True)
         self.fm_left_top.pack       (side=tk.TOP, fill=tk.BOTH, expand=True)
         self.fm_left_bottom.pack    (side=tk.BOTTOM, fill=tk.NONE, expand=True)
         self.fm_left_top_0.pack     (side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -262,7 +262,7 @@ class Application(tk.Frame):
         self.spinbox_upper_threshold_interdot.grid  (row=7, column=1, sticky=tk.W)
         self.spinbox_voltage_per_pixel.grid         (row=8, column=1, sticky=tk.W)
         self.button_exec.pack                       (anchor="center", fill=tk.X, expand=True, padx=30, pady=15)
-        self.scrolledtext_output.pack               (anchor="ne", fill=tk.X, expand=True)
+        self.scrolledtext_output.pack               (anchor="ne", fill=tk.BOTH, expand=True)
 
 
         self.tree_csv.bind("<<TreeviewSelect>>", self.individual_selected)
