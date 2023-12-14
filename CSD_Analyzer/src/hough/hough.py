@@ -562,8 +562,10 @@ if __name__ == "__main__":
     
 
     filepath = "./data/input_hitachi/small.png"
-    """
     filepath = "./data/_archive/takahashi/192_192.png"
+    """
+
+    filepath = "./data/input_hitachi/thinning.png"
     
     
     
@@ -575,15 +577,6 @@ if __name__ == "__main__":
     )
 
 
-    detect_line_segment(
-        filepath=filepath, 
-        edge_extraction=False,
-        hough_threshold=10,         
-        hough_minLineLength=2,     
-        hough_maxLineGap=2              
-    )
-    """
-
     hough_transform_CSD(
         method="slope_intercept",
         filepath=filepath,
@@ -594,6 +587,15 @@ if __name__ == "__main__":
         lower_threshold_interdot=11,
         upper_threshold_interdot=11,
     ) 
+    """
+
+    detect_line_segment(
+        filepath=filepath, 
+        edge_extraction=False,
+        hough_threshold=19,         
+        hough_minLineLength=5,     
+        hough_maxLineGap=4              
+    )
     
 
 
