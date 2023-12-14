@@ -38,9 +38,10 @@ def thin_binary_image(filepath: str) -> npt.NDArray:
     
     return thinning
     """
-    if os.path.exists(output_folder):
-        shutil.rmtree(output_folder)
-    os.mkdir(output_folder)
+    #if os.path.exists(output_folder):
+    #    shutil.rmtree(output_folder)
+    #os.mkdir(output_folder)
+
 
     binary_image = io.imread(filepath, as_gray=True)
     thinned_image = skeletonize(binary_image)
@@ -51,6 +52,11 @@ def thin_binary_image(filepath: str) -> npt.NDArray:
     return thinned_image
 
 if __name__ == "__main__":
+    """
     filepath = "./data/_archive/takahashi/thinning.png"
-
     thin_binary_image(filepath=filepath)
+    """
+    filepath_line = "./data/output_infer/class1.png"
+    filepath_triangle = "./data/output_infer/class2.png"
+    out = integrate_edges(filepath_line=filepath_line, filepath_triangle=filepath_triangle)
+    thin_binary_image(out)
