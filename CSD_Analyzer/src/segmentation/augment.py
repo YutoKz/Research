@@ -66,14 +66,14 @@ def data_augmentation(
         for j in range(num_augment):
             # 適用
             transformed_original = transform_original(original)      
-            # pngで保存. ファイル名は 数値.png 
+            # pngで保存
             cv2.imwrite(dir_output + f"/original/{i*num_augment+j}.png", transformed_original.numpy()[0])
         ## label
         torch.manual_seed(seed)
         for j in range(num_augment):
             # 適用
             transformed_label = transform_label(label)
-            # pngで保存. ファイル名は 数値.png 
+            # pngで保存
             cv2.imwrite(dir_output + f"/label/{i*num_augment+j}.png", transformed_label.numpy()[0])
             # 確認用!!!
             cv2.imwrite(dir_output + f"/check/{i*num_augment+j}.png",  transformed_label.numpy()[0]*100)
