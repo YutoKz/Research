@@ -274,7 +274,7 @@ if __name__ == "__main__":
         num_data=100,
         val_percent=0.2,
         test_percent=0.2,
-        loss_type="CrossEntropyLoss",
+        loss_type="DiceLoss",
         epochs=30,
         batch_size=8,
         learning_rate=0.001,
