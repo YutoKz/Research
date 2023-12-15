@@ -41,13 +41,13 @@ def data_augmentation(
     transform_original = transforms.Compose(
         [
             transforms.RandomResizedCrop(size=RRC_size, scale=RRC_scale, ratio=RRC_ratio, interpolation=Image.BILINEAR),
-            transforms.PILToTensor(), # あくまで確認用
+            transforms.PILToTensor(),
         ]
     )
     transform_label = transforms.Compose(
         [
             transforms.RandomResizedCrop(size=RRC_size, scale=RRC_scale, ratio=RRC_ratio, interpolation=Image.NEAREST),
-            transforms.PILToTensor(), # あくまで確認用
+            transforms.PILToTensor(),
         ]
     )  # ラベル画像用に補間方法を変更
 
