@@ -1,7 +1,9 @@
 import numpy as np
 import cv2
 
-img = cv2.imread("3_452_120_label.png")
+filename = "2_302_120"
+
+img = cv2.imread(filename + "_label.png")
 output = np.zeros_like(img)
 
 red = np.array([0, 0, 255])
@@ -16,4 +18,6 @@ output[red_indices] = label_1
 output[blue_indices] = label_2
 
 print(np.unique(output))
-cv2.imwrite("output.png", output)
+cv2.imwrite(filename + "_label_012.png", output)
+cv2.imwrite(filename + "_label_gray.png", output*100)
+

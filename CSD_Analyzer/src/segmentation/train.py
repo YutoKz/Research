@@ -44,8 +44,8 @@ def train(
     Args:
         method: 事前学習 / Fine-tuning
         dir_input:  学習用データを格納
-                    サブディレクトリに noisy と label
-                    フォーマット: noisy/0.png label/0.png
+                    サブディレクトリに original と label
+                    フォーマット: original/0.png label/0.png
         dir_output: 出力を格納
         classes:    分類クラス数
         device:     ex) device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -83,8 +83,8 @@ def train(
 
     # DataFrame
     if num_data == None:
-        num_data = int(sum(os.path.isfile(os.path.join(dir_input+'/noisy', name)) for name in os.listdir(dir_input+'/noisy')) / 2) 
-    d = {"imgpath":[dir_input+f"/noisy/{i}.png" for i in range(num_data)], "labelpath": [dir_input+f"/label/{i}.png" for i in range(num_data)]}
+        num_data = int(sum(os.path.isfile(os.path.join(dir_input+'/original', name)) for name in os.listdir(dir_input+'/original')) / 2) 
+    d = {"imgpath":[dir_input+f"/original/{i}.png" for i in range(num_data)], "labelpath": [dir_input+f"/label/{i}.png" for i in range(num_data)]}
     data = pd.DataFrame(data=d)
     ## shuffle data
     shuffled_data = data.sample(frac=1, random_state=42)  # random_state はシャッフルの再現性を確保するためのもの
