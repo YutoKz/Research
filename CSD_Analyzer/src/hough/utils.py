@@ -4,7 +4,7 @@ from skimage import io, color
 from skimage.morphology import skeletonize
 import os, shutil
 
-output_folder = "./data/output_utils"
+output_folder = "./outputs/utils"
 
 def thin_binary_image(filepath: str) -> npt.NDArray:
     """
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     filepath = "./data/_archive/takahashi/thinning.png"
     thin_binary_image(filepath=filepath)
     """
-    filepath_line = "./data/output_infer/class1.png"
-    filepath_triangle = "./data/output_infer/class2.png"
+    filepath_line = "./outputs/infer/class1.png"
+    filepath_triangle = "./outputs/infer/class2.png"
     out = integrate_edges(filepath_line=filepath_line, filepath_triangle=filepath_triangle)
     thin_binary_image(out)
