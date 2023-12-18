@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import os, shutil
 from typing import Literal
 
-from utils import integrate_edges, thin_binary_image
+from utils import thin_binary_image
 
 
 output_folder = "./data/output_hough"

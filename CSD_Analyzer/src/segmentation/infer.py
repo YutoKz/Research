@@ -14,7 +14,7 @@ from model import UNet_2D
 
 dir_input = "./data/input_hitachi/raw/original/1.png"
 #load_model = "./models/pretrain/pretrain_29.pth"
-load_model = "./models/finetune/finetune_60.pth"
+load_model = "./models/finetune/finetune_54.pth"
 dir_output = "./data/output_infer"
 
 # フォルダ準備

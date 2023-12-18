@@ -22,6 +22,7 @@ import math
 from typing import Literal
 from dataset import Dataset
 from model import UNet_2D
+from utils import integrate_edges
 
 MethodType = Literal["pretrain", "finetune"]
 LossType = Literal["CrossEntropyLoss", "JaccardLoss", "DiceLoss"]
@@ -270,6 +271,9 @@ def train(
                 if j != 0:
                     pred_np = pred[0,:,:,j].cpu().numpy()
                     cv2.imwrite(dir_output+f"/result/{i}_class{j}.png", pred_np*255)
+
+            integrate_edges(dir_output+f"/result/1_class1.png", dir_output+f"/result/2_class2.png", dir_output=dir_output)  # 追加
+            
     print("finish test")
 
 
@@ -320,9 +324,9 @@ if __name__ == "__main__":
             loaded_model_index=29, # 経験的にこれは必要
             val_percent=0.1,
             test_percent=0.1,
-            loss_type="JaccardLoss",
-            epochs=100,
+            loss_type="DiceLoss",
+            epochs=80,
             batch_size=4,
-            learning_rate=0.001,
+            learning_rate=0.0001,
         )
     

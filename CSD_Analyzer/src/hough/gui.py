@@ -14,7 +14,7 @@ from tkinter import filedialog as filedialog
 from tkinter import scrolledtext
 
 from hough import hough_transform, hough_transform_CSD
-from utils import integrate_edges, thin_binary_image
+from utils import thin_binary_image
 
 
 output_folder = "./data/output_hough"
@@ -513,7 +513,7 @@ class Application(tk.Frame):
         hough_transform_CSD(
             method=self.method,
             filepath=self.input_filepath,
-            edge_extraction=self.edge_extraction,
+            edge_extraction=False,
             thinning=self.thinning,
             lower_threshold=self.lower_threshold,
             upper_threshold=self.upper_threshold,
