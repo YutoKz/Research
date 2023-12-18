@@ -27,4 +27,4 @@ def integrate_edges(
     return filepath_output
 
 if __name__ == "__main__":
-    integrate_edges("./data/output_infer/pred_class1.png", "./data/output_infer/pred_class2.png", dir_output="./data/output_infer")
+    integrate_edges("./outputs/infer/pred_class1.png", "./outputs/infer/pred_class2.png", dir_output="./outputs/infer")

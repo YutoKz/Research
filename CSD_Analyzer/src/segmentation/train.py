@@ -283,8 +283,8 @@ if __name__ == "__main__":
     if arguments[1] == "pretrain":
     
         method = "pretrain"
-        dir_input = "./data/input_simu"
-        dir_output = "./data/output_pretrain"
+        dir_input = "./inputs/simu"
+        dir_output = "./outputs/pretrain"
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model = UNet_2D(classes=3).to(device)
@@ -307,8 +307,8 @@ if __name__ == "__main__":
     
     elif arguments[1] == "finetune":
         method = "finetune"
-        dir_input = "./data/output_augment"
-        dir_output = "./data/output_finetune"
+        dir_input = "./outputs/augment"
+        dir_output = "./outputs/finetune"
 
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

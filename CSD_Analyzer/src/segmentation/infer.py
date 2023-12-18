@@ -12,10 +12,10 @@ import shutil
 
 from model import UNet_2D
 
-dir_input = "./data/input_hitachi/raw/original/1.png"
+dir_input = "./inputs/hitachi/raw/original/1.png"
 #load_model = "./models/pretrain/pretrain_29.pth"
 load_model = "./models/finetune/finetune_54.pth"
-dir_output = "./data/output_infer"
+dir_output = "./outputs/infer"
 
 # フォルダ準備
 if os.path.exists(dir_output):
