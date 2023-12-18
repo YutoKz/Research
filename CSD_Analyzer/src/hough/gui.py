@@ -166,7 +166,7 @@ class Application(tk.Frame):
         self.browse_button                      = tk.Button(self.fm_right_0, text="Browse", command=self.browse_file)
         self.button_exec                        = tk.Button(self.fm_right_2, text="Execute", command=self.execute_pressed)
         ## Treeview
-        self.tree_csv                           = ttk.Treeview  (self.fm_left_bottom_2)
+        self.tree_csv                           = ttk.Treeview  (self.fm_left_bottom_2, height=15)
         ## Checkbutton
         self.tkvar_thinning                     = tk.BooleanVar()
         self.checkbox_thinning                  = tk.Checkbutton(self.fm_right_1, text="Do?", variable=self.tkvar_thinning,         command=self.processing_checked)
@@ -180,6 +180,9 @@ class Application(tk.Frame):
         self.spinbox_voltage_per_pixel          = tk.Spinbox(self.fm_right_1, width=5, from_=0.0, to=10000, increment=0.001, command=self.voltage_per_pixel_changed, format="%.3f")   
         ## ScrolledText
         self.scrolledtext_output                = scrolledtext.ScrolledText(self.fm_right_2, wrap=tk.WORD, width=40, height=10)
+        ## Scrollbar
+        self.scrollbar_csv = ttk.Scrollbar(self.fm_left_bottom_2, orient="vertical", command=lambda *args: self.tree_csv.yview(*args))
+
 
         # pack / grid
         self.pack_grid()
@@ -201,6 +204,8 @@ class Application(tk.Frame):
         self.tree_csv.heading("slope",     text="slope")
         self.tree_csv.heading("intercept", text="intercept")
         self.tree_csv.heading("votes",     text="votes")
+        ### scrollbar
+        self.tree_csv.configure(yscroll=self.scrollbar_csv.set)
         ## spinbox
         ### enter/focusout to change value
         #self.spinbox_individual.bind                ('<Return>', self.individual_changed)
@@ -271,15 +276,17 @@ class Application(tk.Frame):
         self.optionmenu_h_i_v.pack       (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
         self.label_image_h_i_v.pack      (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
         self.label_individual.pack  (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)
-                        #self.spinbox_individual.pack(side=tk.TOP, anchor=tk.E, fill=tk.BOTH, expand=False)
         self.label_image_individual.pack  (side=tk.BOTTOM, fill=tk.BOTH, expand=False)
-        self.label_csv.pack         (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)        
-        self.tree_csv.pack          (side=tk.TOP, fill=tk.Y, expand=True)
+        #self.label_csv.pack         (side=tk.TOP, anchor=tk.N, fill=tk.BOTH, expand=False)        
+        #self.tree_csv.pack          (side=tk.TOP, fill=tk.Y, expand=True)
+        self.label_csv.grid (row=0, column=0, sticky="nsew")
+        self.tree_csv.grid(row=1, column=0, sticky="nsew")
+        self.scrollbar_csv.grid(row=1, column=1, sticky="ns")
+
         ## right
         self.browse_button.pack                     (side=tk.LEFT)
         self.label_inputpath.pack                   (side=tk.LEFT)
         self.label_method.grid                      (row=0, column=0, sticky=tk.E, padx=5, pady=10)
-        #self.label_edge_extraction.grid             (row=1, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_thinning.grid                    (row=2, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_lower_threshold.grid             (row=3, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_upper_threshold.grid             (row=4, column=0, sticky=tk.E, padx=5, pady=10)
@@ -288,7 +295,6 @@ class Application(tk.Frame):
         self.label_upper_threshold_interdot.grid    (row=7, column=0, sticky=tk.E, padx=5, pady=10)
         self.label_voltage_per_pixel.grid           (row=8, column=0, sticky=tk.E, padx=5, pady=10)
         self.optionmenu_method.grid                 (row=0, column=1, sticky=tk.W)       
-        #self.checkbox_edge_extraction.grid          (row=1, column=1, sticky=tk.W)
         self.checkbox_thinning.grid                 (row=2, column=1, sticky=tk.W)
         self.spinbox_lower_threshold.grid           (row=3, column=1, sticky=tk.W)
         self.spinbox_upper_threshold.grid           (row=4, column=1, sticky=tk.W)
