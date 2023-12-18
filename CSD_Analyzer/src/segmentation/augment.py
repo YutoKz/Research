@@ -88,9 +88,11 @@ def data_augmentation(
     
 if __name__ == "__main__":
     data_augmentation(
-        dir_input="./data/input_hitachi/before_augment",
+        dir_input="./data/input_hitachi/dataset1217",
         dir_output="./data/output_augment",
-        augmentation_ratio=50,
-        RRC_scale=(0.3, 0.5),
+        augmentation_ratio=3,
+        RRC_size=(64, 64),
+        RRC_scale=(0.5, 0.7), #(0.3, 0.5),
+        RRC_ratio=(0.75, 1.333),
         RE_prob=0.0,
     )

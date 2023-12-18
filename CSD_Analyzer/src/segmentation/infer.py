@@ -14,13 +14,14 @@ from model import UNet_2D
 
 dir_input = "./data/input_hitachi/raw/original/1.png"
 #load_model = "./models/pretrain/pretrain_29.pth"
-load_model = "./models/finetune/finetune_10.pth"
+load_model = "./models/finetune/finetune_60.pth"
+dir_output = "./data/output_infer"
 
 # フォルダ準備
-if os.path.exists("./data/output_infer"):
-  shutil.rmtree("./data/output_infer")
+if os.path.exists(dir_output):
+  shutil.rmtree(dir_output)
 
-os.mkdir("./data/output_infer") 
+os.mkdir(dir_output) 
 
 # 分類するクラス数
 classes = 3
@@ -57,13 +58,13 @@ pred = torch.argmax(output, dim=1)
 pred = torch.nn.functional.one_hot(pred.long(), num_classes=classes).to(torch.float32)
 
 orig = img[0,0,:,:].cpu().numpy()
-cv2.imwrite("./data/output_infer/original.png", orig*255)
+cv2.imwrite(dir_output + "/original.png", orig*255)
 
 pred_np = torch.argmax(pred[0,:,:,:], dim=2).cpu().numpy()
-cv2.imwrite(f"./data/output_infer/pred.png", pred_np*255//(classes-1))
-cv2.imwrite(f"./data/output_infer/pred_binary.png", np.where(pred_np != 0, 1, pred_np)*255)
+cv2.imwrite(dir_output + f"/pred.png", pred_np*255//(classes-1))
+cv2.imwrite(dir_output + f"/pred_binary.png", np.where(pred_np != 0, 1, pred_np)*255)
 for j in range(classes):
       if j != 0:
         pred_np = pred[0,:,:,j].cpu().numpy()
-        cv2.imwrite(f"./data/output_infer/pred_class{j}.png", pred_np*255)
+        cv2.imwrite(dir_output + f"/pred_class{j}.png", pred_np*255)
 

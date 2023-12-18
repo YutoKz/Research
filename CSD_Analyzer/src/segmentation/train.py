@@ -34,6 +34,7 @@ def train(
     classes,
     device, 
     model: nn.Module,
+    loaded_model_index: int = None,
     num_data: int = None,
     val_percent: float = 0.1,
     test_percent: float = 0.1,
@@ -52,6 +53,7 @@ def train(
         classes:    分類クラス数
         device:     ex) device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model:      ex) unet = UNet_2D(classes=classes).to(device)
+        loaded_model_index: Fine-tuningする場合に読み込む事前学習モデルのindex
         num_data:       学習用データの一部を使う場合に使用
         val_percent:    学習用データ内のvalidation dataの割合
         test_percent:   学習用データ内のtest dataの割合
@@ -87,7 +89,7 @@ def train(
 
     # DataFrame
     if num_data == None:
-        num_data = int(sum(os.path.isfile(os.path.join(dir_input+'/original', name)) for name in os.listdir(dir_input+'/original')) / 2) 
+        num_data = sum(os.path.isfile(os.path.join(dir_input+'/original', name)) for name in os.listdir(dir_input+'/original')) 
     d = {"imgpath":[dir_input+f"/original/{i}.png" for i in range(num_data)], "labelpath": [dir_input+f"/label/{i}.png" for i in range(num_data)]}
     data = pd.DataFrame(data=d)
     ## shuffle data
@@ -119,46 +121,44 @@ def train(
 
 
     # finetune の場合モデルをロード
-    """
-    # IOUが最大のモデルを使うため、ここで最適なモデルを判定
     if method == "finetune":
-        num_pretrain_models = len(os.listdir("./models/pretrain"))
-        best_index = 0
-        best_score = 0.0
-        current_score = 0.0
-        for i in range(num_pretrain_models):
-            model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{i+1}.pth"))
-            with torch.no_grad():
-                for i, data in enumerate(test_loader):
-                    inputs, labels = data["img"].to(device), data["label"].to(device)   # いずれも [データ数, クラス数, 縦, 横]
-                    outputs = model(inputs)                                              # [データ数, クラス数, 縦, 横]
+        if loaded_model_index == None: # 指定なし。IOU最高のモデルをload
+            print("Find best IOU model...")
+            num_pretrain_models = len(os.listdir("./models/pretrain"))
+            best_index = 0
+            best_score = 0.0
+            current_score = 0.0
+            for i in range(num_pretrain_models):
+                model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{i+1}.pth"))
+                with torch.no_grad():
+                    for i, data in enumerate(train_loader):
+                        inputs, labels = data["img"].to(device), data["label"].to(device)   # いずれも [データ数, クラス数, 縦, 横]
+                        outputs = model(inputs)                                              # [データ数, クラス数, 縦, 横]
 
-                    ## IOU
-                    sigmoid = nn.Sigmoid()
-                    outputs = sigmoid(outputs)
-                    tp, fp, fn, tn = smp.metrics.get_stats(outputs, labels.to(torch.int), mode='multilabel', threshold=0.5)
-                    batch_iou      = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
-                    current_score += batch_iou * batch_size
-                if best_score < current_score:
-                    best_score = current_score
-                    best_index = i+1
-        print(f"Model loaded from ./models/pretrain/pretrain_{best_index}.pth")
-        print(f"IOU: {best_score}")
-        model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{best_index}.pth"))
-        
-    """
-    if method == "finetune":
-        model.load_state_dict(torch.load(f"./models/pretrain/pretrain_29.pth"))
-        print(f"Model loaded from ./models/pretrain/pretrain_29.pth")
+                        ## IOU
+                        sigmoid = nn.Sigmoid()
+                        outputs = sigmoid(outputs)
+                        tp, fp, fn, tn = smp.metrics.get_stats(outputs, labels.to(torch.int), mode='multilabel', threshold=0.5)
+                        batch_iou      = smp.metrics.iou_score(tp, fp, fn, tn, reduction="weighted", class_weights=[0.8, 1.0, 1.2])  # micro
+                        current_score += batch_iou * batch_size
+                    if best_score < current_score:
+                        best_score = current_score
+                        best_index = i+1
+            model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{best_index}.pth"))
+            print(f"Loaded pretrained model: ./models/pretrain/pretrain_{best_index}.pth")
+            print(f"                    IOU: {best_score}")
+        else: # 指定あり。
+            model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{loaded_model_index}.pth"))
+            print(f"Loaded pretrained model: ./models/pretrain/pretrain_{loaded_model_index}.pth")
     
 
 
     # Loss function
-    if loss_type == "CrossEntropyLoss":
+    if loss_type    == "CrossEntropyLoss":
         criterion = nn.CrossEntropyLoss()
-    elif loss_type == "JaccardLoss":
+    elif loss_type  == "JaccardLoss":
         criterion = smp.losses.JaccardLoss(mode='multilabel')
-    elif loss_type == "DiceLoss":
+    elif loss_type  == "DiceLoss":
         criterion = smp.losses.DiceLoss(mode='multilabel')
             
     print(f"Loss funtion: {loss_type}")
@@ -211,7 +211,6 @@ def train(
 
         print()
         torch.save(model.state_dict(), f"./models/{method}/{method}_{epoch+1}.pth")
-    print("finish training")
 
 
 
@@ -243,7 +242,7 @@ def train(
     best_model_index = history["val_iou"].index(max(history["val_iou"])) // math.ceil(len(val_df) / batch_size)
     #model.load_state_dict(torch.load(f"./models/{method}/{method}_{epochs}.pth"))
     model.load_state_dict(torch.load(f"./models/{method}/{method}_{best_model_index+1}.pth"))
-    print(f"load model {best_model_index+1}")
+    print(f"Best IOU model: {best_model_index+1}")
 
     model.eval()
     sigmoid = nn.Sigmoid()
@@ -304,7 +303,7 @@ if __name__ == "__main__":
     
     elif arguments[1] == "finetune":
         method = "finetune"
-        dir_input = "./data/input_hitachi/dataset1217"
+        dir_input = "./data/output_augment"
         dir_output = "./data/output_finetune"
 
 
@@ -318,11 +317,12 @@ if __name__ == "__main__":
             classes=3,
             device=device, 
             model=model,
-            val_percent=0.2,
-            test_percent=0.2,
-            loss_type="DiceLoss",
-            epochs=30,
-            batch_size=2,
-            learning_rate=0.00001,
+            loaded_model_index=29, # 経験的にこれは必要
+            val_percent=0.1,
+            test_percent=0.1,
+            loss_type="JaccardLoss",
+            epochs=100,
+            batch_size=4,
+            learning_rate=0.001,
         )
     
