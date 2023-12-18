@@ -17,6 +17,8 @@ from torcheval.metrics.functional import multiclass_accuracy
 from sklearn.model_selection import train_test_split
 import os
 import shutil
+import sys
+import math
 from typing import Literal
 from dataset import Dataset
 from model import UNet_2D
@@ -76,6 +78,8 @@ def train(
         if os.path.exists("./models"):
             shutil.rmtree("./models")
         os.mkdir("./models")
+        os.mkdir("./models/pretrain")
+        os.mkdir("./models/finetune")
 
     # num of classes
     #classes = max(np.unique(np.array(cv2.imread(dir_input+"/label/0.png", cv2.IMREAD_GRAYSCALE))).tolist()) + 1
@@ -113,20 +117,24 @@ def train(
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
+
+    # finetune の場合モデルをロード
+    """
     # IOUが最大のモデルを使うため、ここで最適なモデルを判定
     if method == "finetune":
-        num_pretrain_models = len(os.listdir("./models"))
+        num_pretrain_models = len(os.listdir("./models/pretrain"))
         best_index = 0
         best_score = 0.0
         current_score = 0.0
         for i in range(num_pretrain_models):
-            model.load_state_dict(torch.load(f"./models/pretrain_{i+1}.pth"))
+            model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{i+1}.pth"))
             with torch.no_grad():
                 for i, data in enumerate(test_loader):
                     inputs, labels = data["img"].to(device), data["label"].to(device)   # いずれも [データ数, クラス数, 縦, 横]
                     outputs = model(inputs)                                              # [データ数, クラス数, 縦, 横]
 
                     ## IOU
+                    sigmoid = nn.Sigmoid()
                     outputs = sigmoid(outputs)
                     tp, fp, fn, tn = smp.metrics.get_stats(outputs, labels.to(torch.int), mode='multilabel', threshold=0.5)
                     batch_iou      = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
@@ -134,8 +142,16 @@ def train(
                 if best_score < current_score:
                     best_score = current_score
                     best_index = i+1
-        model.load_state_dict(torch.load(f"./models/pretrain_{best_index}.pth"))
-        print(f"Model loaded from ./models/pretrain_{best_index}.pth")
+        print(f"Model loaded from ./models/pretrain/pretrain_{best_index}.pth")
+        print(f"IOU: {best_score}")
+        model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{best_index}.pth"))
+        
+    """
+    if method == "finetune":
+        model.load_state_dict(torch.load(f"./models/pretrain/pretrain_29.pth"))
+        print(f"Model loaded from ./models/pretrain/pretrain_29.pth")
+    
+
 
     # Loss function
     if loss_type == "CrossEntropyLoss":
@@ -194,7 +210,7 @@ def train(
                 print(f"\t| - IOU score: {batch_iou.item():.5f}")
 
         print()
-        torch.save(model.state_dict(), f"./models/{method}_{epoch+1}.pth")
+        torch.save(model.state_dict(), f"./models/{method}/{method}_{epoch+1}.pth")
     print("finish training")
 
 
@@ -224,8 +240,10 @@ def train(
     # test
     print("[test]")
     # model = UNet_2D(classes=classes)
-    model.load_state_dict(torch.load(f"./models/{method}_{epochs}.pth"))
-    print(f"load model {epochs}")
+    best_model_index = history["val_iou"].index(max(history["val_iou"])) // math.ceil(len(val_df) / batch_size)
+    #model.load_state_dict(torch.load(f"./models/{method}/{method}_{epochs}.pth"))
+    model.load_state_dict(torch.load(f"./models/{method}/{method}_{best_model_index+1}.pth"))
+    print(f"load model {best_model_index+1}")
 
     model.eval()
     sigmoid = nn.Sigmoid()
@@ -257,25 +275,54 @@ def train(
 
 
 if __name__ == "__main__":
+    arguments = sys.argv
 
-    dir_input = "./data/input_simu"
-    dir_output = "./data/output_pretrain"
+    if arguments[1] == "pretrain":
+    
+        method = "pretrain"
+        dir_input = "./data/input_simu"
+        dir_output = "./data/output_pretrain"
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = UNet_2D(classes=3).to(device)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        model = UNet_2D(classes=3).to(device)
 
-    train(
-        method="pretrain",
-        dir_input=dir_input,
-        dir_output=dir_output,
-        classes=3,
-        device=device, 
-        model=model,
-        num_data=100,
-        val_percent=0.2,
-        test_percent=0.2,
-        loss_type="DiceLoss",
-        epochs=30,
-        batch_size=8,
-        learning_rate=0.001,
-    )
+        train(
+            method=method,
+            dir_input=dir_input,
+            dir_output=dir_output,
+            classes=3,
+            device=device, 
+            model=model,
+            num_data=500,
+            val_percent=0.2,
+            test_percent=0.2,
+            loss_type="CrossEntropyLoss",
+            epochs=30,
+            batch_size=32,
+            learning_rate=0.001,
+        )
+    
+    elif arguments[1] == "finetune":
+        method = "finetune"
+        dir_input = "./data/input_hitachi/dataset1217"
+        dir_output = "./data/output_finetune"
+
+
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        model = UNet_2D(classes=3).to(device)
+
+        train(
+            method=method,
+            dir_input=dir_input,
+            dir_output=dir_output,
+            classes=3,
+            device=device, 
+            model=model,
+            val_percent=0.2,
+            test_percent=0.2,
+            loss_type="DiceLoss",
+            epochs=30,
+            batch_size=2,
+            learning_rate=0.00001,
+        )
+    

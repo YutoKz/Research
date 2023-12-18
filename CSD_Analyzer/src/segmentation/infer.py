@@ -12,6 +12,10 @@ import shutil
 
 from model import UNet_2D
 
+dir_input = "./data/input_hitachi/raw/original/1.png"
+#load_model = "./models/pretrain/pretrain_29.pth"
+load_model = "./models/finetune/finetune_10.pth"
+
 # フォルダ準備
 if os.path.exists("./data/output_infer"):
   shutil.rmtree("./data/output_infer")
@@ -27,12 +31,12 @@ unet = UNet_2D(classes=classes).to(device)
 
 # test
 model = UNet_2D(classes=classes)
-model.load_state_dict(torch.load("./models/train_23.pth"))
+model.load_state_dict(torch.load(load_model))
 
 #model.eval()
 sigmoid = nn.Sigmoid()
 
-img_orig = cv2.imread("./data/input_hitachi/original/csd100.png")
+img_orig = cv2.imread(dir_input)
 
 required_height = [i for i in range(img_orig.shape[0] - 15, img_orig.shape[0] + 1) if i % 16 == 0]
 required_width = [i for i in range(img_orig.shape[1] - 15, img_orig.shape[1] + 1) if i % 16 == 0]

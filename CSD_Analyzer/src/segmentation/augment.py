@@ -10,10 +10,11 @@ def data_augmentation(
     dir_input: str,
     dir_output: str,
     seed: int = 42,
-    num_augment: int = 5,
+    augmentation_ratio: int = 5,
     RRC_size = (100, 100), 
-    RRC_scale = (0.08, 1.0),
+    RRC_scale = (0.3, 1.0),
     RRC_ratio = (0.75, 1.333),
+    RE_prob: float = 0.0,
 
 ):
     """ データセットを拡張, pngで保存.
@@ -22,6 +23,8 @@ def data_augmentation(
                     サブディレクトリに, label と original. 対応するファイルの名前は同じに.
         dir_output: 拡張した学習データセットの保存先
         seed: シード値
+
+        augmentation_ratio: 1枚の画像から何枚生成するか
 
         RRC_        RandomResizedCrop のパラメータ
             size:   切り抜くサイズ(出力のサイズ)
@@ -42,14 +45,16 @@ def data_augmentation(
         [
             transforms.RandomResizedCrop(size=RRC_size, scale=RRC_scale, ratio=RRC_ratio, interpolation=Image.BILINEAR),
             transforms.PILToTensor(),
+            transforms.RandomErasing(p=RE_prob, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0),
         ]
     )
     transform_label = transforms.Compose(
         [
-            transforms.RandomResizedCrop(size=RRC_size, scale=RRC_scale, ratio=RRC_ratio, interpolation=Image.NEAREST),
+            transforms.RandomResizedCrop(size=RRC_size, scale=RRC_scale, ratio=RRC_ratio, interpolation=Image.NEAREST),    # ラベル画像用に補間方法を変更
             transforms.PILToTensor(),
+            transforms.RandomErasing(p=RE_prob, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0),
         ]
-    )  # ラベル画像用に補間方法を変更
+    )  
 
 
 
@@ -63,20 +68,20 @@ def data_augmentation(
         # 元画像ペアにtransform_original / transform_label を 複数回 適用, 保存.
         ## original
         torch.manual_seed(seed)
-        for j in range(num_augment):
+        for j in range(augmentation_ratio):
             # 適用
-            transformed_original = transform_original(original)      
+            transformed_original = transform_original(original)   
             # pngで保存
-            cv2.imwrite(dir_output + f"/original/{i*num_augment+j}.png", transformed_original.numpy()[0])
+            cv2.imwrite(dir_output + f"/original/{i*augmentation_ratio+j}.png", transformed_original.numpy()[0])
         ## label
         torch.manual_seed(seed)
-        for j in range(num_augment):
+        for j in range(augmentation_ratio):
             # 適用
             transformed_label = transform_label(label)
             # pngで保存
-            cv2.imwrite(dir_output + f"/label/{i*num_augment+j}.png", transformed_label.numpy()[0])
+            cv2.imwrite(dir_output + f"/label/{i*augmentation_ratio+j}.png", transformed_label.numpy()[0])
             # 確認用!!!
-            cv2.imwrite(dir_output + f"/check/{i*num_augment+j}.png",  transformed_label.numpy()[0]*100)
+            cv2.imwrite(dir_output + f"/check/{i*augmentation_ratio+j}.png",  transformed_label.numpy()[0]*100)
 
 
 
@@ -84,6 +89,8 @@ def data_augmentation(
 if __name__ == "__main__":
     data_augmentation(
         dir_input="./data/input_hitachi/before_augment",
-        dir_output="./data/input_hitachi/augmented",
-        
+        dir_output="./data/output_augment",
+        augmentation_ratio=50,
+        RRC_scale=(0.3, 0.5),
+        RE_prob=0.0,
     )
