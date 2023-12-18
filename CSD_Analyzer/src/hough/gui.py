@@ -17,7 +17,7 @@ from hough import hough_transform, hough_transform_CSD
 from utils import thin_binary_image
 
 
-output_folder = "./data/output_hough"
+output_folder = "./outputs/hough"
 
 
 r_w = 400
