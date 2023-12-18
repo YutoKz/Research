@@ -13,7 +13,7 @@ from typing import Literal
 from utils import thin_binary_image
 
 
-output_folder = "./data/output_hough"
+output_folder = "./outputs/hough"
 MethodType = Literal["slope_intercept", "slope"]
 
 
@@ -565,7 +565,7 @@ if __name__ == "__main__":
     filepath = "./data/_archive/takahashi/192_192.png"
     """
 
-    filepath = "./data/input_hitachi/thinning.png"
+    filepath = "./inputs/hitachi/thinning.png"
     
     
     
