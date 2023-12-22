@@ -229,17 +229,18 @@ def train(
                 print(f"\t| - F1 score:  {batch_f1.item():.5f}")
                 print(f"\t| - IOU score: {batch_iou.item():.5f}")
 
-                epoch_val_iou += batch_iou.item() * len(inputs)   # ここをbatchsizeでなくdataのshape[?]にするといいかも
-
-
+                epoch_val_iou += batch_iou.item() * len(inputs)
+        
+        # Average val IOU
+        average_val_iou = epoch_val_iou / len(val_df)
+        history["average_val_iou"].append(average_val_iou)
+        print(f"Average val IOU: {average_val_iou:.5f}")
         print()
+
         torch.save(model.state_dict(), f"./models/{method}/{method}_{epoch+1}.pth")
 
         # Early Stopping
-        epoch_val_iou /= len(val_df)
-        history["average_val_iou"].append(epoch_val_iou)
-        print(f"Average val IOU: {epoch_val_iou:.5f}\n")
-        if epoch_val_iou < pre_iou:  # 悪化した場合
+        if average_val_iou < pre_iou:  # 悪化した場合
             epoch_count += 1
             if epoch_count > patience and early_stopping:
                 print("Early stopped.")
@@ -247,7 +248,7 @@ def train(
                 break
         else:  # 精度が改善した場合
             epoch_count = 0
-            pre_iou = epoch_val_iou
+            pre_iou = average_val_iou
 
 
 
