@@ -181,12 +181,13 @@ def train(
     # Training
     epoch_count = 0
     pre_iou = -1.0
-    history = {"train_loss": [], "val_loss": [], "val_iou": [], "average_val_iou": []}
+    ## グラフ + 最適モデル判定 用
+    history = {"train_loss": [], "val_loss": [], "batch_iou_micro": [], "batch_iou_class": [], "average_iou_micro": [], "average_iou_class": []}
     for epoch in range(epochs):
         model.train()
 
-        epoch_val_loss = 0
-        epoch_val_iou = 0
+        epoch_iou_micro = 0
+        epoch_iou_class = torch.zeros(classes).to(device)
 
         print("-----------------------------------------")
         print(f"epoch: {epoch+1}")
@@ -224,14 +225,16 @@ def train(
                 ### f1
                 batch_f1        = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
                 ### iou
-                batch_iou_micro       = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
+                batch_iou_micro = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
                 batch_iou_class = smp.metrics.iou_score(tp.sum(0), fp.sum(0), fn.sum(0), tn.sum(0), reduction="none") # このバッチのclass別IOU [class0, class1, class2, ...]
                 
                 ## 記録
-                history["val_iou"].append(batch_iou_micro.item())
+                history["batch_iou_micro"].append(batch_iou_micro.item())
+                #history["batch_iou_class"].append(batch_iou_class.tolist())　　バッチごとのクラス別IOU  いらんかも
 
                 ## エポックの合計
-                epoch_val_iou += batch_iou_micro.item() * len(inputs)
+                epoch_iou_micro += batch_iou_micro.item() * len(inputs)
+                epoch_iou_class += batch_iou_class * len(inputs)
                 
                 ## 標準出力
                 print(f"| - batch: {i+1}\n\t| - loss:      {loss.item():.5f}")
@@ -240,20 +243,29 @@ def train(
                 print(f"\t| - IOU")
                 print(f"\t\t| - micro: {batch_iou_micro.item():.5f}")
                 print(f"\t\t| - class:")
-                for c in range(len(batch_iou_class)):
+                for c in range(classes):
                     print(f"\t\t\t| - class {c}: {batch_iou_class[c]:.5f}")
-
         
-        # Average val IOU
-        average_val_iou = epoch_val_iou / len(val_df)
-        history["average_val_iou"].append(average_val_iou)
-        print(f"Average val IOU: {average_val_iou:.5f}")
+        # Average in epoch
+        ## 計算
+        average_iou_micro = epoch_iou_micro / len(val_df)
+        average_iou_class = epoch_iou_class / len(val_df)
+        ## 記録
+        history["average_iou_micro"].append(average_iou_micro)
+        history["average_iou_class"].append([average_iou_class[c] for c in range(classes)])
+        ## 標準出力
+        print("| - Average:")
+        print("\t| - IOU")
+        print(f"\t\t| - micro: {average_iou_micro:.5f}")    
+        print(f"\t\t| - class")    
+        for c in range(classes):
+            print(f"\t\t\t| - class {c}: {average_iou_class[c]:.5f}")
         print()
 
         torch.save(model.state_dict(), f"./models/{method}/{method}_{epoch+1}.pth")
 
         # Early Stopping
-        if average_val_iou < pre_iou:  # 悪化した場合
+        if average_iou_micro < pre_iou:  # 悪化した場合
             epoch_count += 1
             if epoch_count > patience and early_stopping:
                 print("Early stopped.")
@@ -261,7 +273,7 @@ def train(
                 break
         else:  # 精度が改善した場合
             epoch_count = 0
-            pre_iou = average_val_iou
+            pre_iou = average_iou_micro
 
 
 
@@ -279,10 +291,10 @@ def train(
     plt.ylabel('loss')
     plt.savefig(dir_output+"/val_loss.png")
     plt.figure()
-    plt.plot(history["val_iou"])
+    plt.plot(history["batch_iou_micro"])
     plt.xlabel('batch')
     plt.ylabel('iou')
-    plt.savefig(dir_output+"/val_iou.png")
+    plt.savefig(dir_output+"/batch_iou_micro.png")
 
 
 
@@ -292,8 +304,8 @@ def train(
     # test
     print("[test]")
     #best_model_index = history["val_iou"].index(max(history["val_iou"])) // math.ceil(len(val_df) / batch_size)
-    best_model_index =  history["average_val_iou"].index(max(history["average_val_iou"]))
-    print(f"Best IOU model: {best_model_index+1}\n| - IOU: {max(history['average_val_iou']):.5f}")
+    best_model_index =  history["average_iou_micro"].index(max(history["average_iou_micro"]))           # microのiouのaverage最大
+    print(f"Best IOU model: {best_model_index+1}\n| - IOU: {max(history['average_iou_micro']):.5f}")
     model.load_state_dict(torch.load(f"./models/{method}/{method}_{best_model_index+1}.pth"))
 
     model.eval()
