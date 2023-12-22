@@ -423,7 +423,7 @@ def _detect_peak_coordinate(
     upper_threshold: int, 
 ) -> npt.NDArray:
     """
-    出力：
+    Returns:
         座標 [ [rho1, rho2, ...], [theta1, theta2, ...] ]
         ただし、
         theta の座標は np.arange(-rng, rng) の値 (-180...0...179) 
@@ -443,11 +443,15 @@ def _detect_peak_coordinate(
     peak_local = (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[0:-2, 1:-1]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[2:, 1:-1]) * \
            (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 0:-2]) * (thresholded_hough_array[1:-1, 1:-1] >= thresholded_hough_array[1:-1, 2:]) * \
            (thresholded_hough_array[1:-1, 1:-1] > 0)
-    peak_local = np.array(np.where(peak_local)) + 1  # peak: [ [rho1, rho2, ...], [theta1, theta2, ...] ]   
+    
+    print(peak_local)
+    peak_local = np.array(np.where(peak_local)) + 1  # peak_local: [ [rho1, rho2, ...], [theta1, theta2, ...] ]   
+    print(peak_local)
+    print()
     peak_global = np.copy(peak_local)
     for i, t in enumerate(peak_local[1]):
         peak_global[1, i] = theta_array[t]
-    
+    print(peak_global)
     return peak_global
 
 def _calculate_theta_max(
