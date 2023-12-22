@@ -225,9 +225,15 @@ def train(
                 batch_f1        = smp.metrics.f1_score(tp, fp, fn, tn, reduction="micro")
                 ### iou
                 batch_iou_micro       = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
-                history["val_iou"].append(batch_iou_micro.item())
                 batch_iou_class = smp.metrics.iou_score(tp.sum(0), fp.sum(0), fn.sum(0), tn.sum(0), reduction="none") # このバッチのclass別IOU [class0, class1, class2, ...]
+                
+                ## 記録
+                history["val_iou"].append(batch_iou_micro.item())
 
+                ## エポックの合計
+                epoch_val_iou += batch_iou_micro.item() * len(inputs)
+                
+                ## 標準出力
                 print(f"| - batch: {i+1}\n\t| - loss:      {loss.item():.5f}")
                 print(f"\t| - Accuracy:  {batch_accuracy.item():.5f}")
                 print(f"\t| - F1 score:  {batch_f1.item():.5f}")
@@ -237,7 +243,6 @@ def train(
                 for c in range(len(batch_iou_class)):
                     print(f"\t\t\t| - class {c}: {batch_iou_class[c]:.5f}")
 
-                epoch_val_iou += batch_iou_micro.item() * len(inputs)
         
         # Average val IOU
         average_val_iou = epoch_val_iou / len(val_df)
