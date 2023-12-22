@@ -13,6 +13,11 @@ from torchvision.transforms import functional
 import segmentation_models_pytorch as smp
 from sklearn.model_selection import train_test_split
 
+# fix seed
+seed = 42
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
 
 # UNet
 class TwoConvBlock(nn.Module):

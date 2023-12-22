@@ -6,6 +6,12 @@ import cv2
 import os
 import shutil
 
+# fix seed
+seed = 42
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+
 def data_augmentation(
     dir_input: str,
     dir_output: str,

@@ -27,6 +27,12 @@ from utils import integrate_edges
 MethodType = Literal["pretrain", "finetune"]
 LossType = Literal["CrossEntropyLoss", "JaccardLoss", "DiceLoss"]
 
+# fix seed
+seed = 42
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+
 
 def train(
     method: MethodType,
@@ -56,7 +62,7 @@ def train(
         classes:    分類クラス数
         device:     ex) device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model:      ex) unet = UNet_2D(classes=classes).to(device)
-        loaded_model_index: Fine-tuningする場合に読み込む事前学習モデルのindex
+        loaded_model_index: Fine-tuningする場合にセットする事前学習モデルのindex
         num_data:       学習用データの一部を使う場合に使用
         val_percent:    学習用データ内のvalidation dataの割合
         test_percent:   学習用データ内のtest dataの割合
@@ -65,7 +71,13 @@ def train(
         learning_rate: 
         patience: 学習を早期終了する基準epoch数。patience以上精度が悪化し続けたら終了。
     """
-    print(f"--- mode: {method} ---")
+    print(f"\n--- mode: {method} ---")
+    print(f"device: {device}")
+    print(f"model:  {type(model)}")
+    print(f"early stopping: {early_stopping}")
+    if early_stopping:
+        print(f"| - patience: {patience}")
+
 
     # fix seed
     seed = 42
@@ -88,7 +100,7 @@ def train(
 
     # num of classes
     #classes = max(np.unique(np.array(cv2.imread(dir_input+"/label/0.png", cv2.IMREAD_GRAYSCALE))).tolist()) + 1
-    print(f"num of classes: {classes}")
+    print(f"classes: {classes}")
 
     # DataFrame
     if num_data == None:
@@ -104,9 +116,10 @@ def train(
     train_df = train_data.reset_index(drop=True)
     val_df = validation_data.reset_index(drop=True)
     test_df = test_data.reset_index(drop=True)
-    print(f"num of training data:   {len(train_df)}")
-    print(f"num of validation data: {len(val_df)}")
-    print(f"num of test data:       {len(test_df)}")
+    print("Num of data:")
+    print(f"| - training:   {len(train_df)}")
+    print(f"| - validation: {len(val_df)}")
+    print(f"| - test:       {len(test_df)}")
     # DataLoader
     train_dataset = Dataset(train_df, classes=classes)
     val_dataset = Dataset(val_df, classes=classes)
@@ -312,6 +325,7 @@ if __name__ == "__main__":
         dir_output = "./outputs/pretrain"
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cpu")
         model = UNet_2D(classes=3).to(device)
 
         train(
@@ -321,9 +335,9 @@ if __name__ == "__main__":
             classes=3,
             device=device, 
             model=model,
-            num_data=500,
-            val_percent=0.2,
-            test_percent=0.2,
+            num_data=100,
+            val_percent=0.1,
+            test_percent=0.1,
             loss_type="CrossEntropyLoss",
             epochs=30,
             batch_size=32,

@@ -1,5 +1,12 @@
 import cv2
+import numpy as np
+import torch
 
+# fix seed
+seed = 42
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
 
 def integrate_edges(
     filepath_line: str,

@@ -12,6 +12,13 @@ import shutil
 
 from model import UNet_2D
 
+# fix seed
+seed = 42
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+
+
 dir_input = "./inputs/hitachi/raw/original/1.png"
 #load_model = "./models/pretrain/pretrain_29.pth"
 load_model = "./models/finetune/finetune_54.pth"
