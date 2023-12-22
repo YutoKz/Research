@@ -4,7 +4,7 @@ import cv2
 def integrate_edges(
     filepath_line: str,
     filepath_triangle: str,
-    dir_output: str,
+    filepath_output: str,
 ) -> str:
     """ 三角形の輪郭と直線を合わせる
 
@@ -13,7 +13,6 @@ def integrate_edges(
         filepath_triangle:  CSDの三角形の二値画像
         
     """
-    filepath_output = dir_output + "/integrated_edge.png"
 
     img_line = cv2.imread(filepath_line, cv2.IMREAD_GRAYSCALE)
     img_triangle = cv2.imread(filepath_triangle, cv2.IMREAD_GRAYSCALE)
@@ -27,4 +26,4 @@ def integrate_edges(
     return filepath_output
 
 if __name__ == "__main__":
-    integrate_edges("./outputs/infer/pred_class1.png", "./outputs/infer/pred_class2.png", dir_output="./outputs/infer")
+    integrate_edges("./outputs/infer/pred_class1.png", "./outputs/infer/pred_class2.png", filapath_output="./outputs/infer/integrated_edge.png")
