@@ -43,6 +43,7 @@ def train(
     epochs: int = 5,
     batch_size: int = 1,
     learning_rate: float = 1e-3,
+    early_stopping: bool = True,
     patience: int = 5,
 ): 
     """
@@ -62,7 +63,7 @@ def train(
         epochs:
         batch_size: 
         learning_rate: 
-
+        patience: 学習を早期終了する基準epoch数。patience以上精度が悪化し続けたら終了。
     """
     print(f"--- mode: {method} ---")
 
@@ -193,7 +194,7 @@ def train(
 
         model.eval()
         sigmoid = nn.Sigmoid()
-        print("[validation]")
+        print("\n[validation]")
         with torch.no_grad():
             for i, data in enumerate(val_loader):
                 inputs, labels = data["img"].to(device), data["label"].to(device)   # いずれも [データ数, クラス数, 縦, 横]
@@ -216,17 +217,20 @@ def train(
                 print(f"\t| - F1 score:  {batch_f1.item():.5f}")
                 print(f"\t| - IOU score: {batch_iou.item():.5f}")
 
-                epoch_val_iou += batch_iou.item() * batch_size
+                epoch_val_iou += batch_iou.item() * len(inputs)   # ここをbatchsizeでなくdataのshape[?]にするといいかも
+
 
         print()
         torch.save(model.state_dict(), f"./models/{method}/{method}_{epoch+1}.pth")
 
         # Early Stopping
         epoch_val_iou /= len(val_df)
-        print(f"Average val IOU: {epoch_val_iou}\n")
+        print(f"Average val IOU: {epoch_val_iou:.5f}\n")
         if epoch_val_iou < pre_iou:  # 悪化した場合
             epoch_count += 1
-            if epoch_count > patience:
+            if epoch_count > patience and early_stopping:
+                print("Early stopped.")
+                print("-----------------------------------------")
                 break
         else:  # 精度が改善した場合
             epoch_count = 0
@@ -293,9 +297,9 @@ def train(
                     pred_np = pred[0,:,:,j].cpu().numpy()
                     cv2.imwrite(dir_output+f"/result/{i}_class{j}.png", pred_np*255)
 
-            integrate_edges(dir_output+f"/result/1_class1.png", dir_output+f"/result/2_class2.png", dir_output=dir_output)  # 追加
+            integrate_edges(dir_output+f"/result/{i}_class1.png", dir_output+f"/result/{i}_class2.png", filepath_output=dir_output+f"/result/{i}_edge.png")  # 追加
             
-    print("finish test")
+    print("Finished test.")
 
 
 if __name__ == "__main__":
@@ -324,6 +328,7 @@ if __name__ == "__main__":
             epochs=30,
             batch_size=32,
             learning_rate=0.001,
+            patience=3,
         )
     
     elif arguments[1] == "finetune":
