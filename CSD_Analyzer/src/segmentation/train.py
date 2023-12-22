@@ -43,6 +43,7 @@ def train(
     epochs: int = 5,
     batch_size: int = 1,
     learning_rate: float = 1e-3,
+    patience: int = 5,
 ): 
     """
     Args:
@@ -165,9 +166,14 @@ def train(
     print(f"Loss funtion: {loss_type}")
 
     # Training
+    epoch_count = 0
+    pre_iou = -1.0
     history = {"train_loss": [], "val_loss": [], "val_iou": []}
     for epoch in range(epochs):
         model.train()
+
+        epoch_val_loss = 0
+        epoch_val_iou = 0
 
         print("-----------------------------------------")
         print(f"epoch: {epoch+1}")
@@ -210,8 +216,23 @@ def train(
                 print(f"\t| - F1 score:  {batch_f1.item():.5f}")
                 print(f"\t| - IOU score: {batch_iou.item():.5f}")
 
+                epoch_val_iou += batch_iou.item() * batch_size
+
         print()
         torch.save(model.state_dict(), f"./models/{method}/{method}_{epoch+1}.pth")
+
+        # Early Stopping
+        epoch_val_iou /= len(val_df)
+        print(f"Average val IOU: {epoch_val_iou}\n")
+        if epoch_val_iou < pre_iou:  # 悪化した場合
+            epoch_count += 1
+            if epoch_count > patience:
+                break
+        else:  # 精度が改善した場合
+            epoch_count = 0
+            pre_iou = epoch_val_iou
+
+
 
 
 
@@ -328,5 +349,6 @@ if __name__ == "__main__":
             epochs=80,
             batch_size=4,
             learning_rate=0.0001,
+            patience=5,
         )
     
