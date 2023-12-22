@@ -5,12 +5,10 @@ import numpy as np
 import cv2
 import os
 import shutil
+from utils import torch_fix_seed
 
 # fix seed
-seed = 42
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
+torch_fix_seed()
 
 def data_augmentation(
     dir_input: str,

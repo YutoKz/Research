@@ -22,17 +22,13 @@ import math
 from typing import Literal
 from dataset import Dataset
 from model import UNet_2D
-from utils import integrate_edges
+from utils import integrate_edges, torch_fix_seed
 
 MethodType = Literal["pretrain", "finetune"]
 LossType = Literal["CrossEntropyLoss", "JaccardLoss", "DiceLoss"]
 
 # fix seed
-seed = 42
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
-
+torch_fix_seed()
 
 def train(
     method: MethodType,
@@ -325,7 +321,7 @@ if __name__ == "__main__":
         dir_output = "./outputs/pretrain"
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        device = torch.device("cpu")
+        #device = torch.device("cpu")
         model = UNet_2D(classes=3).to(device)
 
         train(

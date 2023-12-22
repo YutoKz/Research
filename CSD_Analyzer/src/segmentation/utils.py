@@ -2,11 +2,14 @@ import cv2
 import numpy as np
 import torch
 
-# fix seed
-seed = 42
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
+def torch_fix_seed(seed = 42):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms = True
+
+torch_fix_seed()
 
 def integrate_edges(
     filepath_line: str,

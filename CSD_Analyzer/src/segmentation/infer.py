@@ -11,12 +11,10 @@ import os
 import shutil
 
 from model import UNet_2D
+from utils import torch_fix_seed
 
-# fix seed
-seed = 42
-np.random.seed(seed)
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
+torch_fix_seed()
+
 
 
 dir_input = "./inputs/hitachi/raw/original/1.png"
