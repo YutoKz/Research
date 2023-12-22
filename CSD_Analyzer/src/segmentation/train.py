@@ -47,7 +47,7 @@ def train(
     learning_rate: float = 1e-3,
     early_stopping: bool = True,
     patience: int = 5,
-): 
+) -> int: 
     """
     Args:
         method: 事前学習 / Fine-tuning
@@ -66,6 +66,9 @@ def train(
         batch_size: 
         learning_rate: 
         patience: 学習を早期終了する基準epoch数。patience以上精度が悪化し続けたら終了。
+
+    Returns:
+        validationデータで最もIOUが高かった学習モデルの番号。
     """
     print(f"\n--- mode: {method} ---")
     print(f"device: {device}")
@@ -178,7 +181,7 @@ def train(
     # Training
     epoch_count = 0
     pre_iou = -1.0
-    history = {"train_loss": [], "val_loss": [], "val_iou": []}
+    history = {"train_loss": [], "val_loss": [], "val_iou": [], "average_val_iou": []}
     for epoch in range(epochs):
         model.train()
 
@@ -234,6 +237,7 @@ def train(
 
         # Early Stopping
         epoch_val_iou /= len(val_df)
+        history["average_val_iou"].append(epoch_val_iou)
         print(f"Average val IOU: {epoch_val_iou:.5f}\n")
         if epoch_val_iou < pre_iou:  # 悪化した場合
             epoch_count += 1
@@ -273,11 +277,10 @@ def train(
 
     # test
     print("[test]")
-    # model = UNet_2D(classes=classes)
-    best_model_index = history["val_iou"].index(max(history["val_iou"])) // math.ceil(len(val_df) / batch_size)
-    #model.load_state_dict(torch.load(f"./models/{method}/{method}_{epochs}.pth"))
+    #best_model_index = history["val_iou"].index(max(history["val_iou"])) // math.ceil(len(val_df) / batch_size)
+    best_model_index =  history["average_val_iou"].index(max(history["average_val_iou"]))
+    print(f"Best IOU model: {best_model_index+1}\n| - IOU: {max(history['average_val_iou']):.5f}")
     model.load_state_dict(torch.load(f"./models/{method}/{method}_{best_model_index+1}.pth"))
-    print(f"Best IOU model: {best_model_index+1}")
 
     model.eval()
     sigmoid = nn.Sigmoid()
@@ -309,6 +312,9 @@ def train(
             integrate_edges(dir_output+f"/result/{i}_class1.png", dir_output+f"/result/{i}_class2.png", filepath_output=dir_output+f"/result/{i}_edge.png")  # 追加
             
     print("Finished test.")
+    print("-----------------------------------------")
+
+    return best_model_index+1
 
 
 if __name__ == "__main__":
@@ -331,14 +337,14 @@ if __name__ == "__main__":
             classes=3,
             device=device, 
             model=model,
-            num_data=100,
+            num_data=500,
             val_percent=0.1,
             test_percent=0.1,
             loss_type="CrossEntropyLoss",
             epochs=30,
             batch_size=32,
             learning_rate=0.001,
-            patience=3,
+            patience=5,
         )
     
     elif arguments[1] == "finetune":
