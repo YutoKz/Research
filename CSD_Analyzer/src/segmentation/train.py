@@ -305,7 +305,7 @@ def train(
     print("[test]")
     #best_model_index = history["val_iou"].index(max(history["val_iou"])) // math.ceil(len(val_df) / batch_size)
     best_model_index =  history["average_iou_micro"].index(max(history["average_iou_micro"]))           # microのiouのaverage最大
-    print(f"Best IOU model: {best_model_index+1}\n| - IOU: {max(history['average_iou_micro']):.5f}")
+    print(f"Best IOU model: {best_model_index+1}\n| - IOU (micro): {max(history['average_iou_micro']):.5f}")
     model.load_state_dict(torch.load(f"./models/{method}/{method}_{best_model_index+1}.pth"))
 
     model.eval()
