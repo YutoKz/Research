@@ -14,7 +14,6 @@ import segmentation_models_pytorch as smp
 from sklearn.model_selection import train_test_split
 from utils import torch_fix_seed
 
-
 torch_fix_seed()
 
 class Dataset(BaseDataset):
