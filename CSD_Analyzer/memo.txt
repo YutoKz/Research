@@ -1,0 +1,14 @@
+Docker で実行する場合
+
+1. 
+    DockerDesktop等で nvidia/cuda のイメージをプル。TAGは環境のOSに合わせるが、devel と付いたものを使用。
+2. 
+    cudaイメージからコンテナを生成
+    $ docker run -it -d --gpus all --name csd_analyzer -v [プロジェクトフォルダの絶対パス]:/usr/CSD_Analyzer nvidia/cuda:[TAG] bash
+3. 
+    コンテナに入る
+    $ docker exec -it csd_analyzer bash
+4.
+    コンテナ内で
+    $ ./setup_environment.sh
+    $ pip3 install -r requirements.txt
