@@ -10,5 +10,5 @@ Docker で実行する場合
     $ docker exec -it csd_analyzer bash
 4.
     コンテナ内で
+    chmod +x setup_environment.sh
     $ ./setup_environment.sh
-    $ pip3 install -r requirements.txt
