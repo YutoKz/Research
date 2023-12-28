@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import segmentation_models_pytorch as smp
-from torcheval.metrics.functional import multiclass_accuracy
+#from torcheval.metrics.functional import multiclass_accuracy
 from sklearn.model_selection import train_test_split
 import os
 import shutil
