@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # ドライバ の認識確認
-echo "Check Driver"
+echo "----- Check Driver -----"
 nvidia-smi
 echo ""
 
 # CUDA の確認
-echo "Check CUDA"
+echo "----- Check CUDA -----"
 nvcc -V
 echo ""
 
