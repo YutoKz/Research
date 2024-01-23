@@ -131,7 +131,7 @@ def train(
     # GPU, Optimizer
     #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     #model = UNet_2D(classes=classes).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
 
 
 
