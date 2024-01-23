@@ -230,7 +230,7 @@ def train(
                 
                 ## 記録
                 history["batch_iou_micro"].append(batch_iou_micro.item())
-                #history["batch_iou_class"].append(batch_iou_class.tolist())　　バッチごとのクラス別IOU  いらんかも
+                history["batch_iou_class"].append(batch_iou_class.tolist())   #バッチごとのクラス別IOU 
 
                 ## エポックの合計
                 epoch_iou_micro += batch_iou_micro.item() * len(inputs)
@@ -279,25 +279,44 @@ def train(
 
 
 
-    # Loss
+    # Loss, iou
     plt.figure()
     plt.plot(history["train_loss"])
-    plt.xlabel('batch')
-    plt.ylabel('loss')
+    plt.xlabel('Batch')
+    plt.ylabel('Loss')
     plt.savefig(dir_output+"/train_loss.png")
+
     plt.figure()
     plt.plot(history["val_loss"])
-    plt.xlabel('batch')
-    plt.ylabel('loss')
+    plt.xlabel('Batch')
+    plt.ylabel('Loss')
     plt.savefig(dir_output+"/val_loss.png")
+
     plt.figure()
     plt.plot(history["batch_iou_micro"])
-    plt.xlabel('batch')
-    plt.ylabel('iou')
+    plt.xlabel('Batch')
+    plt.ylabel('IoU')
+    plt.ylim(0, 1.0)
     plt.savefig(dir_output+"/batch_iou_micro.png")
 
-
-
+    """
+    for c in range(classes):
+        plt.figure()
+        plt.plot([row[c] for row in history["batch_iou_class"]])
+        plt.xlabel('batch')
+        plt.ylabel('iou of class' + str(c))
+        plt.ylim(0, 1.0)
+        plt.savefig(dir_output+'/batch_iou_class'+str(c)+'.png')
+    """
+    plt.figure()
+    plt.plot([row[0] for row in history["batch_iou_class"]], label='Background', color=(0, 0, 0))
+    plt.plot([row[1] for row in history["batch_iou_class"]], label='Line', color=(0.4, 0.4, 0.4))
+    plt.plot([row[2] for row in history["batch_iou_class"]], label='Triangle', color=(0.8, 0.8, 0.8))
+    plt.xlabel('Batch')
+    plt.ylabel('Class IoU')
+    plt.ylim(0, 1.0)
+    plt.legend()
+    plt.savefig(dir_output+'/batch_iou_class.png')
 
 
 
@@ -305,7 +324,11 @@ def train(
     print("[test]")
     #best_model_index = history["val_iou"].index(max(history["val_iou"])) // math.ceil(len(val_df) / batch_size)
     best_model_index =  history["average_iou_micro"].index(max(history["average_iou_micro"]))           # microのiouのaverage最大
-    print(f"Best IOU model: {best_model_index+1}\n| - IOU (micro): {max(history['average_iou_micro']):.5f}")
+    print(f"Best IOU model: {best_model_index+1}")
+    print(f"| - IOU\n\t| - micro: {history['average_iou_micro'][best_model_index]:.5f}")
+    print("\t| - class")
+    for c in range(classes):
+        print(f"\t\t| - class {c}: {history['average_iou_class'][best_model_index][c]:.5f}")        
     model.load_state_dict(torch.load(f"./models/{method}/{method}_{best_model_index+1}.pth"))
 
     model.eval()
