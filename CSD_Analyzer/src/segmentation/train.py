@@ -131,7 +131,7 @@ def train(
     # GPU, Optimizer
     #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     #model = UNet_2D(classes=classes).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
 
@@ -367,7 +367,7 @@ if __name__ == "__main__":
             val_percent=0.1,
             test_percent=0.1,
             loss_type="CrossEntropyLoss",
-            epochs=30,
+            epochs=80,
             batch_size=32,
             learning_rate=0.001,
             patience=5,
