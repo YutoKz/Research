@@ -267,7 +267,7 @@ def train(
         # Early Stopping
         if average_iou_micro < pre_iou:  # 悪化した場合
             epoch_count += 1
-            if epoch_count > patience and early_stopping:
+            if epoch_count >= patience and early_stopping:
                 print("Early stopped.")
                 print("-----------------------------------------")
                 break
