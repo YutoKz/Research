@@ -128,10 +128,6 @@ def train(
     test_loader = DataLoader(test_dataset, batch_size=1, num_workers=0)
 
 
-    # GPU, Optimizer
-    #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    #model = UNet_2D(classes=classes).to(device)
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
 
@@ -166,15 +162,19 @@ def train(
             model.load_state_dict(torch.load(f"./models/pretrain/pretrain_{loaded_model_index}.pth"))
             print(f"Loaded pretrained model: ./models/pretrain/pretrain_{loaded_model_index}.pth")
     
+    # GPU, Optimizer
+    #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #model = UNet_2D(classes=classes).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
     # Loss function
     if loss_type    == "CrossEntropyLoss":
         criterion = nn.CrossEntropyLoss()
     elif loss_type  == "JaccardLoss":
-        criterion = smp.losses.JaccardLoss(mode='multilabel')
+        criterion = smp.losses.JaccardLoss(mode='multilabel', classes=[1, 2])
     elif loss_type  == "DiceLoss":
-        criterion = smp.losses.DiceLoss(mode='multilabel')
+        criterion = smp.losses.DiceLoss(mode='multilabel', classes=[1, 2])
             
     print(f"Loss funtion: {loss_type}")
 
@@ -387,12 +387,13 @@ if __name__ == "__main__":
             device=device, 
             model=model,
             num_data=500,
-            val_percent=0.1,
-            test_percent=0.1,
+            val_percent=0.2,
+            test_percent=0.2,
             loss_type="CrossEntropyLoss",
-            epochs=80,
+            epochs=30,
             batch_size=32,
             learning_rate=0.001,
+            early_stopping=False,
             patience=5,
         )
     
@@ -412,13 +413,14 @@ if __name__ == "__main__":
             classes=3,
             device=device, 
             model=model,
-            loaded_model_index=29, # 経験的にこれは必要
+            loaded_model_index=30, # 経験的にこれは必要
             val_percent=0.1,
             test_percent=0.1,
-            loss_type="DiceLoss",
+            loss_type="JaccardLoss",
             epochs=80,
             batch_size=4,
             learning_rate=0.0001,
+            early_stopping=True,
             patience=5,
         )
     

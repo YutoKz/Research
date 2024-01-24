@@ -12,14 +12,16 @@ import shutil
 
 from model import UNet_2D
 from utils import torch_fix_seed
+import segmentation_models_pytorch as smp
 
 torch_fix_seed()
 
 
 
-dir_input = "./inputs/hitachi/raw/original/1.png"
-#load_model = "./models/pretrain/pretrain_29.pth"
-load_model = "./models/finetune/finetune_54.pth"
+input_img = "./inputs/hitachi/raw/original/1.png"
+input_label = "./inputs/hitachi/raw/label/1_label_012.png"
+load_model = "./models/pretrain/pretrain_30.pth"
+#load_model = "./models/finetune/finetune_50.pth"
 dir_output = "./outputs/infer"
 
 # フォルダ準備
@@ -27,6 +29,8 @@ if os.path.exists(dir_output):
   shutil.rmtree(dir_output)
 
 os.mkdir(dir_output) 
+
+shutil.copy(load_model, dir_output)
 
 # 分類するクラス数
 classes = 3
@@ -42,7 +46,7 @@ model.load_state_dict(torch.load(load_model))
 #model.eval()
 sigmoid = nn.Sigmoid()
 
-img_orig = cv2.imread(dir_input)
+img_orig = cv2.imread(input_img)
 
 required_height = [i for i in range(img_orig.shape[0] - 15, img_orig.shape[0] + 1) if i % 16 == 0]
 required_width = [i for i in range(img_orig.shape[1] - 15, img_orig.shape[1] + 1) if i % 16 == 0]
@@ -73,3 +77,21 @@ for j in range(classes):
         pred_np = pred[0,:,:,j].cpu().numpy()
         cv2.imwrite(dir_output + f"/pred_class{j}.png", pred_np*255)
 
+
+
+
+label = cv2.imread(input_label, cv2.IMREAD_GRAYSCALE)
+label = np.array(label)
+label = cv2.resize(label, dsize=(required_width[0], required_height[0]))
+label = torch.from_numpy(label.astype(np.float32)).clone()
+label = torch.nn.functional.one_hot(label.long(), num_classes=classes)
+label = label.to(torch.float32)
+label = label.permute(2, 0, 1)
+label = label.unsqueeze(0)
+pred = pred.permute(0, 3, 1, 2)
+
+tp, fp, fn, tn = smp.metrics.get_stats(pred, label.to(torch.int), mode='multilabel', threshold=0.5)
+iou_class = smp.metrics.iou_score(tp.sum(0), fp.sum(0), fn.sum(0), tn.sum(0), reduction="none")
+print("Class IoU")
+for c in range(classes):
+  print(f"| - class {c}: {iou_class.tolist()[c]:.5f}")

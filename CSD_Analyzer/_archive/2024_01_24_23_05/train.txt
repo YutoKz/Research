@@ -1,0 +1,58 @@
+if __name__ == "__main__":
+    arguments = sys.argv
+
+    if arguments[1] == "pretrain":
+    
+        method = "pretrain"
+        dir_input = "./inputs/simu"
+        dir_output = "./outputs/pretrain"
+
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        #device = torch.device("cpu")
+        model = UNet_2D(classes=3).to(device)
+
+        train(
+            method=method,
+            dir_input=dir_input,
+            dir_output=dir_output,
+            classes=3,
+            device=device, 
+            model=model,
+            num_data=500,
+            val_percent=0.2,
+            test_percent=0.2,
+            loss_type="CrossEntropyLoss",
+            epochs=30,
+            batch_size=32,
+            learning_rate=0.001,
+            early_stopping=False,
+            patience=5,
+        )
+    
+    elif arguments[1] == "finetune":
+        method = "finetune"
+        dir_input = "./outputs/augment"
+        dir_output = "./outputs/finetune"
+
+
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        model = UNet_2D(classes=3).to(device)
+
+        train(
+            method=method,
+            dir_input=dir_input,
+            dir_output=dir_output,
+            classes=3,
+            device=device, 
+            model=model,
+            loaded_model_index=30, # 経験的にこれは必要
+            val_percent=0.1,
+            test_percent=0.1,
+            loss_type="JaccardLoss",
+            epochs=80,
+            batch_size=4,
+            learning_rate=0.0001,
+            early_stopping=True,
+            patience=5,
+        )
+    
