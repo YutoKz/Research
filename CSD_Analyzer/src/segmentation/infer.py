@@ -11,7 +11,7 @@ import os
 import shutil
 
 from model import UNet_2D
-from utils import torch_fix_seed
+from utils import torch_fix_seed, integrate_edges
 import segmentation_models_pytorch as smp
 
 torch_fix_seed()
@@ -20,8 +20,8 @@ torch_fix_seed()
 
 input_img = "./inputs/hitachi/raw/original/1.png"
 input_label = "./inputs/hitachi/raw/label/1_label_012.png"
-load_model = "./models/pretrain/pretrain_30.pth"
-#load_model = "./models/finetune/finetune_50.pth"
+#load_model = "./models/pretrain/pretrain_22.pth"
+load_model = "./models/finetune/finetune_12.pth"
 dir_output = "./outputs/infer"
 
 # フォルダ準備
@@ -76,6 +76,12 @@ for j in range(classes):
       if j != 0:
         pred_np = pred[0,:,:,j].cpu().numpy()
         cv2.imwrite(dir_output + f"/pred_class{j}.png", pred_np*255)
+
+integrate_edges(
+   dir_output+"/pred_class1.png",
+   dir_output+"/pred_class2.png",
+   dir_output+"/integrated_edge.png"
+)
 
 
 

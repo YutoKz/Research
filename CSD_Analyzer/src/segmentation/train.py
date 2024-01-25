@@ -188,6 +188,10 @@ def train(
 
         epoch_iou_micro = 0
         epoch_iou_class = torch.zeros(classes).to(device)
+        epoch_tp = torch.zeros(classes, dtype=torch.long).to(device)
+        epoch_fp = torch.zeros(classes, dtype=torch.long).to(device)
+        epoch_fn = torch.zeros(classes, dtype=torch.long).to(device)
+        epoch_tn = torch.zeros(classes, dtype=torch.long).to(device)
 
         print("-----------------------------------------")
         print(f"epoch: {epoch+1}")
@@ -212,14 +216,19 @@ def train(
             for i, data in enumerate(val_loader):
                 inputs, labels = data["img"].to(device), data["label"].to(device)   # いずれも [データ数, クラス数, 縦, 横]
                 outputs = model(inputs)                                              # [データ数, クラス数, 縦, 横]
-
+                
                 # 性能評価
                 ## Loss
                 loss = criterion(outputs, labels)  
                 history["val_loss"].append(loss.item())
                 ## Metrics
                 outputs = sigmoid(outputs)
-                tp, fp, fn, tn = smp.metrics.get_stats(outputs, labels.to(torch.int), mode='multilabel', threshold=0.5)
+                tp, fp, fn, tn = smp.metrics.get_stats(outputs, labels.to(torch.int), mode='multilabel', threshold=0.5)  # [データ数, クラス数]
+                epoch_tp += tp.sum(0)
+                epoch_fp += fp.sum(0)
+                epoch_fn += fn.sum(0)
+                epoch_tn += tn.sum(0)
+
                 ### accuracy
                 batch_accuracy  = smp.metrics.accuracy(tp, fp, fn, tn, reduction="micro")
                 ### f1
@@ -255,7 +264,12 @@ def train(
         history["average_iou_class"].append([average_iou_class[c] for c in range(classes)])
         ## 標準出力
         print("| - Average:")
-        print("\t| - IOU")
+        print("\t| - TP/FP/FN/TN:")
+        print("\t\t| - tp: " + str(epoch_tp.cpu().numpy() / len(val_df)))
+        print("\t\t| - fp: " + str(epoch_fp.cpu().numpy() / len(val_df)))
+        print("\t\t| - fn: " + str(epoch_fn.cpu().numpy() / len(val_df)))
+        print("\t\t| - tn: " + str(epoch_tn.cpu().numpy() / len(val_df)))
+        print("\t| - IoU:")
         print(f"\t\t| - micro: {average_iou_micro:.5f}")    
         print(f"\t\t| - class")    
         for c in range(classes):
@@ -390,10 +404,10 @@ if __name__ == "__main__":
             val_percent=0.2,
             test_percent=0.2,
             loss_type="CrossEntropyLoss",
-            epochs=30,
+            epochs=80,
             batch_size=32,
             learning_rate=0.001,
-            early_stopping=False,
+            early_stopping=True,
             patience=5,
         )
     
@@ -413,7 +427,7 @@ if __name__ == "__main__":
             classes=3,
             device=device, 
             model=model,
-            loaded_model_index=30, # 経験的にこれは必要
+            loaded_model_index=22, # 経験的にこれは必要
             val_percent=0.1,
             test_percent=0.1,
             loss_type="JaccardLoss",
