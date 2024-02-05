@@ -224,6 +224,8 @@ def train(
                 ## Metrics
                 outputs = sigmoid(outputs)
                 tp, fp, fn, tn = smp.metrics.get_stats(outputs, labels.to(torch.int), mode='multilabel', threshold=0.5)  # [データ数, クラス数]
+                
+                # TODO: ここsumとらずに、epoch全体の混合行列[tp/fp/fn/tn, データ数, クラス数]として保存できるようにしたい
                 epoch_tp += tp.sum(0)
                 epoch_fp += fp.sum(0)
                 epoch_fn += fn.sum(0)

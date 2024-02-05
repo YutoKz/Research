@@ -9,6 +9,7 @@ import torch.nn as nn
 
 import os
 import shutil
+import sys
 
 from model import UNet_2D
 from utils import torch_fix_seed, integrate_edges
@@ -17,11 +18,21 @@ import segmentation_models_pytorch as smp
 torch_fix_seed()
 
 
+arguments = sys.argv
+
 
 input_img = "./inputs/hitachi/raw/original/1.png"
 input_label = "./inputs/hitachi/raw/label/1_label_012.png"
-#load_model = "./models/pretrain/pretrain_22.pth"
-load_model = "./models/finetune/finetune_12.pth"
+
+if arguments[1] == "pretrain":
+  print("--- mode: pretrain ---")
+  load_model = "./models/pretrain/pretrain_22.pth"
+elif arguments[1] == "finetune":
+  print("--- mode: finetune ---")
+  load_model = "./models/finetune/finetune_1.pth"
+else:
+   load_model = ""
+
 dir_output = "./outputs/infer"
 
 # フォルダ準備
@@ -97,7 +108,15 @@ label = label.unsqueeze(0)
 pred = pred.permute(0, 3, 1, 2)
 
 tp, fp, fn, tn = smp.metrics.get_stats(pred, label.to(torch.int), mode='multilabel', threshold=0.5)
+iou_micro = smp.metrics.iou_score(tp, fp, fn, tn, reduction="micro")
 iou_class = smp.metrics.iou_score(tp.sum(0), fp.sum(0), fn.sum(0), tn.sum(0), reduction="none")
+print("TP/FP/FN/TN")
+print("| - tp: " + str(tp.sum(0).numpy()))
+print("| - fp: " + str(fp.sum(0).numpy()))
+print("| - fn: " + str(fn.sum(0).numpy()))
+print("| - tn: " + str(tn.sum(0).numpy()))
+print("Micro IoU")
+print(f"| - micro: {iou_micro.item():.5f}")
 print("Class IoU")
 for c in range(classes):
   print(f"| - class {c}: {iou_class.tolist()[c]:.5f}")
