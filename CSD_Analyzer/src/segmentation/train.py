@@ -188,6 +188,8 @@ def train(
 
         epoch_iou_micro = 0
         epoch_iou_class = torch.zeros(classes).to(device)
+
+        # epoch全体の混合行列 に対し 全検証データの合計をとったもの [クラス数]
         epoch_tp = torch.zeros(classes, dtype=torch.long).to(device)
         epoch_fp = torch.zeros(classes, dtype=torch.long).to(device)
         epoch_fn = torch.zeros(classes, dtype=torch.long).to(device)
@@ -225,7 +227,6 @@ def train(
                 outputs = sigmoid(outputs)
                 tp, fp, fn, tn = smp.metrics.get_stats(outputs, labels.to(torch.int), mode='multilabel', threshold=0.5)  # [データ数, クラス数]
                 
-                # TODO: ここsumとらずに、epoch全体の混合行列[tp/fp/fn/tn, データ数, クラス数]として保存できるようにしたい
                 epoch_tp += tp.sum(0)
                 epoch_fp += fp.sum(0)
                 epoch_fn += fn.sum(0)
@@ -271,6 +272,16 @@ def train(
         print("\t\t| - fp: " + str(epoch_fp.cpu().numpy() / len(val_df)))
         print("\t\t| - fn: " + str(epoch_fn.cpu().numpy() / len(val_df)))
         print("\t\t| - tn: " + str(epoch_tn.cpu().numpy() / len(val_df)))
+        ### TODO: epoch全体のIoUということなら、epoch_tp...使って
+        ### epoch_iou_micro = smp.metrics.iou_score(epoch_tp.sum(0), epoch_fp.sum(0), epoch_fn.sum(0), epoch_tn.sum(0), reduction="none")
+        ### epoch_iou_class = smp.metrics.iou_score(epoch_tp, epoch_fp, epoch_fn, epoch_tn, reduction="none") 
+        ### print("\t| - IoU:")
+        ### print(f"\t\t| - micro: {epoch_iou_micro.item():.5f}")    
+        ### print(f"\t\t| - class")    
+        ### for c in range(classes):
+        ###     print(f"\t\t\t| - class {c}: {epoch_iou_class[c]:.5f}")
+        ### print()
+        ### とすればいいのでは
         print("\t| - IoU:")
         print(f"\t\t| - micro: {average_iou_micro:.5f}")    
         print(f"\t\t| - class")    
